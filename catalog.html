@@ -1,0 +1,692 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flashed-messages">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
+
+<div class="jumbotron">
+    <h1>Explore the XYZeus Geospatial Database</h1>
+    <br>
+    <h5>We have over 1 MILLION spatial datasets spanning the globe<br><br>These datasets include, but are not limited to:</h5>
+    <ul>
+        <li>Administrative Boundaries</li>
+        <li>Updated Census Geographies</li>
+        <li>Federal/Protected Lands</li>
+        <li>Building Footprints</li>
+        <li>Housing Footprints</li>
+        <li>Road & Highway Networks</li>
+        <li>Electrical/Utility Networks (Interested in EUVI?)</li>
+        <li>Renewable Assets (Solar, Wind, Hydro, GeoThermal)</li>
+        <li>Power Plants & Terminals</li>
+        <li>Elevation & Contour</li>
+        <li>FEMA / Floodplain Datasets</li>
+        <li>Fish and Wildlife, Endangered Species</li>
+        <li>Points of Interest (Shops, Malls, Fast Food Chains, Grocery Stores, Luxury Retail)</li>
+    </ul>
+    <p>Common Customer Requests/Problems:</p>
+    <ul>
+        <li>"I want shapefiles for every Mcdonald's in the United States"</li>
+        <li>"I want ton export of the street networks in DC"</li>
+        <li>"I want to know the location of every airport in the world and download that dataset locally"</li>
+        <li>"I am a utility manager, but I don't have my assets represented as geospatial entities"</li>
+    </ul>
+    <h5>Use our form below to enter a Search Method, Search Radius, Search Category, and a Search Subcategory</h5>
+    <h6>Learn more about category and subcategory inputs<a href=""> HERE</a></h6>
+    <br>
+    <h2>Interesting in purchasing data? Simply add queries to your cart!</h2>
+</div>
+<div>
+    <h3>Search the XYZeus Geospatial Catalog</h3>
+    <br>
+    <button id="newQueryButton" class="btn btn-warning">Start New Query</button>
+    <div id="queryOptions" style="display: none;">
+        <nav class="nav nav-pills nav-fill mb-3" role="tablist">
+            <a class="nav-item nav-link active" id="vector-tab" data-bs-toggle="tab" href="#vector-form" role="tab" aria-controls="vector-form" aria-selected="true">Open Street Map</a>
+            <a class="nav-item nav-link" id="raster-tab" data-bs-toggle="tab" href="#raster-form" role="tab" aria-controls="raster-form" aria-selected="false">Open Topography</a>
+        </nav>
+
+        <div class="tab-content" id="query-forms">
+            <!-- Vector Form -->
+            <div class="tab-pane fade show active" id="vector-form" role="tabpanel" aria-labelledby="vector-tab" style="display: block;">
+                <form method="post" id="searchForm" onsubmit="event.preventDefault(); updateMap();">
+                    <div class="form-group">
+                        <label for="search-method">Search Method:</label>
+                        <select class="form-control" id="search-method" name="search-method" required>
+                            <option value="">Select a Search Method</option>
+                            <option value="address">Address</option>
+                            <option value="placename">Place Name</option>
+                            <option value="point">Coordinates</option>
+                            <option value="polygon">Polygon</option>
+                            <option value="bbox">Bounding Box</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="address-group" style="display:none;">
+                        <label for="address">Address:</label>
+                        <input type="text" class="form-control" name="address" id="address" placeholder="Example: 1600 Pennsylvania Avenue NW, Washington, DC 20500">
+                    </div>
+                    <div class="form-group" id="place-group" style="display:none;">
+                        <label for="placename">Place Name:</label>
+                        <input type="text" class="form-control" name="placename" id="placename" placeholder="Examples: New York City, Paris, Colorado, Tokyo, Joint Base Andrews"><br>
+                    </div>
+                    <div class="form-group" id="point-group" style="display:none;">
+                        <label for="lat">Latitude:</label>
+                        <input type="text" class="form-control" id="lat" name="lat" placeholder="Example: 37.79">
+                        <label for="lng">Longitude:</label>
+                        <input type="text" class="form-control" id="lng" name="lng" placeholder="Example: -122.41">
+                    </div>
+                    <div class="form-group" id="bbox-group" style="display:none;">
+                        <div id="map4">Select Custom Bounding Box:
+                            <div id="geocoder" class="geocoder"></div>
+                        </div>
+                        <br>
+                        <label for="bbox">Bounding Box will be the following extent, adjust the map as necessary:</label>
+                        <input type="text" class="form-control" id="bbox" name="bbox" placeholder="Map Extent:">
+                        <br>
+                    </div>
+                    <div class="form-group" id="polygon-group" style="display:none;">
+                        <div class="mb-3">
+                            <label for="polygon" class="form-label">Upload a polygon below:</label>
+                            <br>
+                            <div class="alert alert-warning" role="alert">
+                                Accepted format(s): GeoJSON <br> Make sure your upload contains ONLY 1 polygon (boundary)
+                            </div>
+                            <input name="polygon" class="form-control" type="file" id="polygon" accept=".geojson,.shp">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="radius">Search Radius (meters)</label>
+                        <input type="text" class="form-control" id="radius" name="radius" placeholder="Optional, Defaults to 1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="key">Category:</label>
+                        <select class="form-control" name="key" id="key" required>
+                            <option value="">Select a Category</option>
+                            <option value="admin_level">admin_level</option>
+                            <option value="amenity">amenity</option>
+                            <option value="power">power</option>
+                            <option value="aeroway">aeroway</option>
+                            <option value="building">building</option>
+                            <option value="barrier">barrier</option>
+                            <option value="boundary">boundary</option>
+                            <option value="craft">craft</option>
+                            <option value="emergency">emergency</option>
+                            <option value="geological">geological</option>
+                            <option value="highway">highway</option>
+                            <option value="historic">historic</option>
+                            <option value="landuse">landuse</option>
+                            <option value="leisure">leisure</option>
+                            <option value="man_made">man_made</option>
+                            <option value="military">military</option>
+                            <option value="natural">natural</option>
+                            <option value="office">office</option>
+                            <option value="place">place</option>
+                            <option value="public_transport">public_transport</option>
+                            <option value="railway">railway</option>
+                            <option value="route">route</option>
+                            <option value="shop">shop</option>
+                            <option value="sport">sport</option>
+                            <option value="telecom">telecom</option>
+                            <option value="tourism">tourism</option>
+                            <option value="water">water</option>
+                            <option value="waterway">waterway</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="value">Subcategory:</label>
+                        <select class="form-control" name="value" id="value">
+                            <option value="">Select a Subcategory</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtername">(Optional) Know what you're looking for? Limit what is returned by adding a secondary filter</label>
+                        <input type="text" class="form-control" id="filtername" name="filtername" placeholder="McDonald's, Lowes, Sephora">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="submit-btn">Submit OSM Query</button>
+                    <div class="spinner-border d-none" id="spinner" role="status">
+                        <span class="visually-hidden"></span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Raster Form -->
+            <div class="tab-pane fade" id="raster-form" role="tabpanel" aria-labelledby="raster-tab" style="display: none;">
+                <form method="post" id="rasterForm" onsubmit="event.preventDefault(); updateMap();">
+                     <div class="form-group">
+                        <label for="raster-search-method">Search Method:</label>
+                        <select class="form-control" id="raster-search-method" name="raster-search-method" required>
+                            <option value="">Select a Search Method</option>
+                            <option value="bbox-raster">Bounding Box</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="raster-bbox-group" style="display:none;">
+                        <div id="map5">Select Custom Bounding Box:
+                            <div id="geocoder" class="geocoder"></div>
+                        </div>
+                        <br>
+                        <label for="bbox-raster">Bounding Box will be the following extent, adjust the map as necessary:</label>
+                        <input type="text" class="form-control" id="bbox-raster" name="bbox-raster" placeholder="Map Extent:">
+                        <br>
+                        <label for="raster-zoom">Zoom Level will be the following:</label>
+                        <input type="text" class="form-control" id="raster-zoom" name="raster-zoom" placeholder="Current Zoom Level:">
+                        <br>
+                    </div>
+                    <div class="form-group">
+                        <label for="raster-type">Select a Data Source:</label>
+                        <select class="form-control" name="raster-type" id="raster-type" required>
+                            <option value="">Select a Raster Type</option>
+                            <option value="SRTMGL3">Shuttle Radar Topography Mission (90m res)</option>
+                            <option value="SRTMGL1">Shuttle Radar Topography Mission (30m res)</option>
+                            <option value="SRTMGL1_E">Shuttle Radar Topography Mission (30m res) Ellipsoidal</option>
+                            <option value="AW3D30">ALOS Global Digital Surface Model (30m res)</option>
+                            <option value="AW3D30_E">ALOS Global Digital Surface Model (30m res) Ellipsoidal</option>
+                            <option value="SRTM15Plus">Global Bathymetry & Topography | 15m arc secs</option>
+                            <option value="NASADEM">NASA Global Digital Elevation Model (30m res)</option>
+                            <option value="COP30">Copernicus GLO-30 Digital Surface Model (30m res)</option>
+                            <option value="COP90">Copernicus GLO-90 Digital Surface Model (90m res)</option>
+                            <option value="EU_DTM">Continental Europe Digital Terrain Model</option>
+                            <option value="GEDI_L3">Global Ecosystem Dynamics Investigation (GEDI) Level 3 (1km^2)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="raster-submit-btn">Submit Raster Query</button>
+                    <div class="spinner-border d-none" id="raster-spinner" role="status">
+                        <span class="visually-hidden"></span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
+<div class="btn-group" id="download-results" style="display:none;">
+  <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    Download Results <span class="caret"></span>
+  </button>
+  <ul class="dropdown-menu">
+    <li class="dropdown-item"><a href="{{ url_for('catalog.query_csv') }}" id="downloadCSVButton" download="query.csv">Download CSV</a></li>
+    <li class="dropdown-item"><a href="{{ url_for('catalog.query_geojson', filename='query.geojson') }}" id="downloadButton" download="query.geojson">Download GeoJSON</a></li>
+    <li class="dropdown-item"><a href="{{ url_for('catalog.query_shp') }}" id="downloadButton" download="query.shp.zip">Download Shapefile</a></li>
+  </ul>
+</div>
+<button type="submit" class="btn btn-info" id="kepler-btn" style="display:none;">Visualize in Kepler</button>
+<br>
+<br>
+<div id="map3">
+    <div id="geocoder" class="geocoder"></div>
+</div>
+<br>
+<div id="kepler-map" style="display:none;">
+     <iframe id="kepler-iframe" src="" frameborder="0"></iframe>
+</div>
+<br>
+<div id="menu">
+    <input id="satellite-streets-v12" type="radio" name="rtoggle" value="satellite" checked="checked">
+    <label for="satellite-streets-v12">satellite streets</label>
+    <input id="light-v11" type="radio" name="rtoggle" value="light">
+    <label for="light-v11">light</label>
+    <input id="dark-v11" type="radio" name="rtoggle" value="dark">
+    <label for="dark-v11">dark</label>
+    <input id="streets-v12" type="radio" name="rtoggle" value="streets">
+    <label for="streets-v12">streets</label>
+    <input id="outdoors-v12" type="radio" name="rtoggle" value="outdoors">
+    <label for="outdoors-v12">outdoors</label>
+</div>
+<br>
+<br>
+<h3>Query Results</h3>
+<div id="geojson-table">
+    <table class="table table-striped table-hover">
+          <thead class="thead-dark">
+            <tr id="feature">
+              <th>Name</th>
+              <th>Location</th>
+              <th>Elevation</th>
+              <th>Coordinates</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+    </table>
+</div>
+<br>
+<br>
+<script>
+
+    //event listener for the Start new Query Button
+
+    document.getElementById("newQueryButton").addEventListener("click", function() {
+        document.getElementById("newQueryButton").style.display = "none";
+        document.getElementById("queryOptions").style.display = "block";
+    });
+
+    document.getElementById("raster-tab").addEventListener("click", function() {
+        document.getElementById("vector-form").style.display = "none"; // Hide the vector form
+        document.getElementById("raster-form").style.display = "block"; // Show the raster form
+    });
+
+    document.getElementById("vector-tab").addEventListener("click", function() {
+        document.getElementById("vector-form").style.display = "block"; // Show the vector form
+        document.getElementById("raster-form").style.display = "none"; // Hide the raster form
+    });
+
+    // Event listener for Raster tab
+
+    document.getElementById("raster-tab").addEventListener("click", function() {
+        // Set Raster tab as active and Vector tab as inactive
+        document.getElementById("raster-tab").setAttribute("aria-selected", "true");
+        document.getElementById("vector-tab").setAttribute("aria-selected", "false");
+
+        // Show the Raster form and hide the Vector form
+        document.getElementById("raster-form").classList.add("show", "active");
+        document.getElementById("vector-form").classList.remove("show", "active");
+    });
+
+        // Event listener for Vector tab
+
+    document.getElementById("vector-tab").addEventListener("click", function() {
+        // Set Vector tab as active and Raster tab as inactive
+        document.getElementById("vector-tab").setAttribute("aria-selected", "true");
+        document.getElementById("raster-tab").setAttribute("aria-selected", "false");
+
+        // Show the Vector form and hide the Raster form
+        document.getElementById("vector-form").classList.add("show", "active");
+        document.getElementById("raster-form").classList.remove("show", "active");
+    });
+
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoiYWpwYWxhZGkiLCJhIjoiY2xwNTUyNWdqMTl5MDJqbXJmMW9oaHdmdiJ9.B1iRmYYym5F6n0DlE2Sb5w';
+
+        var map = new mapboxgl.Map({
+          container: 'map3',
+          style: 'mapbox://styles/mapbox/dark-v11',
+          center: [-95, 37],
+          zoom: 2
+        });
+
+        var bounding = new mapboxgl.Map({
+          container: 'map4',
+          style: 'mapbox://styles/mapbox/satellite-streets-v12',
+          center: [-95, 37],
+          zoom: 2
+        });
+
+        var bounding_raster = new mapboxgl.Map({
+          container: 'map5',
+          style: 'mapbox://styles/mapbox/satellite-streets-v12',
+          center: [-95, 37],
+          zoom: 2
+        });
+
+        function updateBboxInput() {
+            var bbox = bounding.getBounds().toArray().flat().join(',');
+            $("#bbox").val(bbox);
+          }
+
+          bounding.on('moveend', updateBboxInput);
+          updateBboxInput();
+
+        function updateBboxInputRaster() {
+            var bbox_raster = bounding_raster.getBounds().toArray().flat().join(',');
+            $("#bbox-raster").val(bbox_raster);
+          }
+
+          bounding_raster.on('moveend', updateBboxInputRaster);
+          updateBboxInputRaster();
+
+        function updateZoomInputRaster() {
+            var raster_zoom = bounding_raster.getZoom();
+            $("#raster-zoom").val(raster_zoom.toFixed());  // toFixed(2) will round the zoom level to 2 decimal places
+        }
+
+            bounding_raster.on('zoomend', updateZoomInputRaster);
+            updateZoomInputRaster();
+
+        var geocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl
+        });
+
+        map.on('load', function() {
+            map.addSource('geojsonSource', {
+                'type': 'geojson',
+                'data': '/query_geojson',
+            });
+
+        const layerList = document.getElementById('menu');
+        const inputs = layerList.getElementsByTagName('input');
+
+        for (const input of inputs) {
+        input.onclick = (layer) => {
+        const layerId = layer.target.id;
+         map.setStyle('mapbox://styles/mapbox/' + layerId);
+            // Display message to adjust styles if necessary
+            if (layerId !== 'satellite-streets-v12') {
+                console.log("You may want to adjust your styles to make sure they don't cover your data, or adjust the order of your layers to ensure that the geojson data is on top of any covering styles.");
+            }
+        };
+        }
+        });
+
+        map.on('load', function () {
+        $.getJSON('/query_geojson', function (data) {
+          var features = data.features;
+          var tbody = $('#geojson-table tbody');
+          for (var i = 0; i < features.length; i++) {
+            var feature = features[i];
+            var properties = feature.properties;
+            var coordinates = feature.geometry.coordinates;
+            var lat = coordinates[1];
+            var lng = coordinates[0];
+            tbody.append('<tr><td>' + properties.name + '</td><td>' + properties["addr:street"] + '</td><td>' + properties.ele + '</td><td>' + lat + ',' + lng + '</td></tr>');
+          }
+        });
+
+        map.addLayer({
+            'id': 'query_geojson',
+            'type': 'circle',
+            'source': 'geojsonSource',
+            'paint': {
+                'circle-radius': 2,
+                'circle-color': '#9058FF',
+                'circle-opacity': 0.3,
+                'circle-stroke-color': '#9058FF',
+                'circle-stroke-width': 1
+            }
+        });
+
+         map.addLayer({
+          'id': 'geojson',
+          'type': 'fill',
+          'source': 'geojsonSource',
+          'paint': {
+            'fill-color': '#9058FF',
+            'fill-opacity': 0.6
+          }
+         });
+
+         map.addLayer({
+          'id': 'geojson-outline',
+          'type': 'line',
+          'source': 'geojsonSource',
+          'paint': {
+          'line-color': '#000000',
+          'line-width': 1,
+          'line-opacity': 1
+          }
+          });
+
+         map.addLayer({
+          id: 'markers',
+          type: 'symbol',
+          source: 'geojsonSource',
+          layout: {
+          'icon-image': ['get', 'marker-icon'],
+          'icon-size': 30,
+          'text-field': ['get', 'name'],
+          'text-font': ['Roboto Regular'],
+          'text-offset': [0, 1],
+          'text-anchor': 'top'
+          },
+          paint: {
+           'text-color': '#00E4FF',
+            'text-halo-color': '#000000',
+            'text-halo-width': 1,
+            'text-halo-blur': 2,
+           }
+          });
+
+         updateMap("rasterForm");
+
+        map.on('click', 'query_geojson', function (e) {
+          var coordinates = e.lngLat;
+          var properties = e.features[0].properties;
+          var description = '<h4>' + properties.name + '</h4><p>' + properties.website + '</p><p>' + properties.source + '</p>';
+          new mapboxgl.Popup()
+         .setLngLat(coordinates)
+         .setHTML(description)
+         .addTo(map);
+    });
+       map.on('click', 'geojson', function (e) {
+          var coordinates = e.lngLat;
+          var properties = e.features[0].properties;
+          var description = '<h4>' + properties.name + '</h4><p>' + properties['addr:housenumber'] + '</p><p>' + properties['addr:street'] + '</p>';
+          new mapboxgl.Popup()
+         .setLngLat(coordinates)
+         .setHTML(description)
+         .addTo(map);
+    });
+    });
+
+        map.addControl(geocoder);
+        map.addControl(new mapboxgl.NavigationControl());
+        map.addControl(new mapboxgl.FullscreenControl());
+        map.addControl(new mapboxgl.ScaleControl());
+
+    $('#search-method').on('change', function() {
+        var selection = $(this).val();
+        if (selection === 'address') {
+            $('#address-group').show();
+            $('#place-group').hide();
+            $('#point-group').hide();
+            $('#bbox-group').hide();
+            $('#polygon-group').hide();
+        } else if (selection === 'placename') {
+            $('#place-group').show();
+            $('#address-group').hide();
+            $('#point-group').hide();
+            $('#bbox-group').hide();
+            $('#polygon-group').hide();
+        } else if (selection === 'point') {
+            $('#point-group').show();
+            $('#address-group').hide();
+            $('#place-group').hide();
+            $('#bbox-group').hide();
+            $('#polygon-group').hide();
+        } else if (selection === 'bbox') {
+            $('#bbox-group').show();
+            $('#address-group').hide();
+            $('#place-group').hide();
+            $('#point-group').hide();
+            $('#polygon-group').hide();
+        } else if (selection === 'polygon') {
+            $('#polygon-group').show();
+            $('#bbox-group').hide();
+            $('#address-group').hide();
+            $('#place-group').hide();
+            $('#point-group').hide();
+        }
+    });
+
+    $('#raster-search-method').on('change', function() {
+        var selection = $(this).val();
+        if (selection === 'bbox-raster') {
+            $('#raster-bbox-group').show();
+        }
+    });
+
+
+    $(document).ready(function() {
+    // Define subcategories for each category
+    var subcategories = {
+        "admin_level":["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
+        "amenity": ["","bar", "biergarten", "cafe", "fast_food", "food_court", "ice_cream", "pub", "restaurant", "college", "driving school", "kindergarten", "language school", "library", "toy_library", "research_institute", "training", "music_school", "school", "traffic_park", "university", "bicycle_parking", "bicycle_repair_station", "boat_rental", "boat_sharing", "bus_station", "car_rental", "car_sharing", "car_wash", "vehicle_inspection", "charging_station", "driver_training", "ferry_terminal", "fuel", "motorcycle_parking", "parking", "parking_entrance", "parking_space", "taxi", "atm", "bank", "clinic", "dentist", "doctors", "hospital", "nursing_home", "pharmacy", "social_facility", "veterinary", "arts_center", "brothel", "casino", "cinema", "community_center", "conference_center", "events_venue", "exhibition_centre", "fountain", "gambling", "love_hotel", "music_venue", "nightclub", "planetarium", "public_bookcase", "stripclub", "studio", "swingerclub", "theatre", "courthouse", "fire_station", "police", "post_box", "post_depot", "post_office", "prison", "ranger_station", "townhall", "bbq", "bench", "dog_toilet", "dressing_room", "drinking_water", "give_box", "mailroom", "parcel_locker", "shelter", "shower", "telephone", "toilets", "water_point", "watering_place", "recycling", "waste_basket", "waste_disposal", "waste_transfer_station", "animal_boarding", "animal_breeding", "animal_shelter", "animal_training", "baking_oven", "childcare", "clock", "crematorium", "dive_centre", "funeral_hall", "grave_yard", "hunting_stand", "internet_cafe", "kitchen", "lounger", "marketplace", "monastery", "photo_booth", "place_of_mourning", "place_of_worship", "public_bath", "refugee_site", "vending_machine"],
+        "power": ["","cable", "catenary_mast", "compensator", "connection", "converter", "insulator", "line", "minor_line", "plant", "portal", "generator", "pole", "substation", "switch", "switchgear", "transformer", "terminal", "tower", "transformer"],
+        "aeroway": ["","aerodrome", "apron", "gate", "helipad", "hangar", "runway", "taxiway", "terminal"],
+        "building": ["", "hotel", "houseboat", "apartments", "barracks", "house", "terrace", "treehouse", "commercial", "industrial", "office", "retail", "supermarket", "warehouse", "cathedral", "cabin", "dormitory", "farm", "monastery", "mosque", "religious"],
+        "barrier": ["","cable_barrier", "city_wall", "ditch", "fence", "guard_rail", "handrail", "hedge", "curb", "retaining_wall", "wall","bollard", "cycle_barrier", "gate", "lift_gate", "wall"],
+        "boundary": ["","administrative", "forest", "hazard", "forest_compartment", "maritime", "marker", "national_park", "place", "political", "postal_code", "protected_area", "special_economic_zone", "disputed", "user_defined"],
+        "craft": ["","blacksmith", "carpenter", "electrician", "gardener", "painter", "plumber", "potter", "tailor", "weaver"],
+        "emergency": ["","ambulance_station", "defibrillator", "fire_hydrant", "fire_station", "lifeguard_base", "phone", "siren"],
+        "geological": ["","palaeontological_site"],
+        "highway": ["","primary", "secondary", "tertiary", "bus_stop", "crossing", "give_way", "motorway_junction", "rest_area", "speed_camera", "stop", "traffic_signals", "turning_circle"],
+        "historic": ["","archaeological_site", "battlefield", "boundary_stone", "castle", "memorial", "monument", "ruins", "tower", "wreck"],
+        "landuse": ["","basin", "salt_pond", "cemetery", "grass", "landfill", "military", "port", "quarry", "railway", "recreation_ground", "religious", "village_green", "winter_sports", "commercial", "construction", "education", "fairground", "industrial", "residential", "retail", "institutional", "aquaculture", "farmland", "farmyard", "forest", "meadow", "orchard", "plant_nursery", "vineyard"],
+        "leisure": ["","adult_gaming_center", "amusement_arcade", "beach_resort", "dance", "disc_golf_course", "dog_park", "escape_game", "firepit", "fishing", "fitness_center", "fitness_station", "horse_riding", "ice_rink", "marina", "miniature_golf", "nature_reserve", "garden", "park", "track", "picnic_table", "pitch", "playground", "slipway", "sports_centre", "stadium", "summer_camp", "swimming_area", "swimming_pool", "track", "water_park"],
+        "man_made": ["","bridge", "offshore_platform", "pier", "pipeline", "pump", "silo", "storage_tank", "telescope"],
+        "military":[""],
+        "natural": ["","peak", "volcano", "sinkhole"],
+        "office":["", "diplomatic"],
+        "shop": ["","supermarket", "alcohol", "books", "cheese", "chocolate", "coffee", "convenience", "deli", "dairy", "dry_cleaning", "doityourself", "electronics", "farm", "frozen_food", "green_grocer", "ice_cream", "pasta", "pastry", "seafood", "spices", "tea", "wine", "water", "department_store", "general", "mall", "massage", "wholesale", "baby_goods", "bag", "boutique", "clothes"],
+        "sport": ["", "soccer", "american_football", "running"],
+        "tourism":["","hotel"],
+        "telecom":[""],
+        "water":["", "river", "lake", "reservoir", "pond", "lagoon"],
+        "waterway":[""]
+    };
+
+    // When a category is selected, populate the subcategory dropdown with its corresponding subcategories
+    $('#key').change(function() {
+        var category = $(this).val();
+        var subcategory_options = '';
+        if (category in subcategories) {
+            var subcategory_list = subcategories[category];
+            for (var i = 0; i < subcategory_list.length; i++) {
+                subcategory_options += '<option value="' + subcategory_list[i] + '">' + subcategory_list[i] + '</option>';
+            }
+        }
+        $('#value').html(subcategory_options);
+    });
+    });
+
+    const submitBtn = document.querySelector('#submit-btn');
+    const spinner = document.querySelector('#spinner');
+    const raster_submitBtn = document.querySelector('#raster-submit-btn');
+    const raster_spinner = document.querySelector('#raster-spinner');
+
+   // FUNCTION TO UPDATE MAP
+    function updateMap(formId) {
+      spinner.classList.remove('d-none');
+      raster_spinner.classList.remove('d-none');
+
+      const formData = new FormData(document.getElementById(formId));
+
+      let flaskRoute = "/catalog";
+      if (formId === "rasterForm") {
+        flaskRoute = "/raster_catalog";
+      }
+
+      fetch(flaskRoute, {
+        method: "POST",
+        body: formData,
+      })
+      .then(response => response.json())
+       .then(data => {
+           spinner.classList.add('d-none');
+           raster_spinner.classList.add('d-none');
+
+           console.log("Received data:", data); // Log the received data for debugging
+
+           if (formId === "rasterForm") {
+
+             const timestamp = data.timestamp;
+             const tileBaseUrl = `tiles/${timestamp}/{z}/{x}/{y}.png`;
+
+             if (map.getSource('rasterSource')) {
+                map.removeLayer('rasterLayer');
+                map.removeSource('rasterSource');
+             }
+
+             map.addSource('rasterSource', {
+                'type': 'raster',
+                'tiles': [tileBaseUrl],  // Use the previously defined tileBaseUrl
+                'tileSize': 256,
+                 'scheme': 'tms'
+            });
+
+             map.addLayer({
+                'id': 'rasterLayer',
+                'type': 'raster',
+                'source': 'rasterSource',
+                 "minzoom": 0,
+                 "maxzoom": 22
+            });
+
+             map.fitBounds([
+                [data.ll.longitude, data.ll.latitude],
+                [data.ur.longitude, data.ur.latitude]
+            ]);
+
+        } else {
+
+               if (!map.getSource('geojsonSource')) {
+                        map.addSource('geojsonSource', {
+                            type: 'geojson',
+                            data: {}
+                        });
+                    }
+                map.getSource("geojsonSource").setData(data);
+
+               const bbox = turf.bbox(data);
+                map.fitBounds([
+                    [bbox[0], bbox[1]],
+                    [bbox[2], bbox[3]],
+                ]);
+
+                $('#download-results').show();
+                $('#kepler-btn').show();
+
+                // Update table
+                var tbody = $("#geojson-table tbody");
+                tbody.empty();
+                var features = data.features;
+                for (var i = 0; i < features.length; i++) {
+                    var feature = features[i];
+                    var properties = feature.properties;
+                    var coordinates = feature.geometry.coordinates;
+                    var lat = coordinates[1];
+                    var lng = coordinates[0];
+                    tbody.append('<tr class="table-success"><td contenteditable="true" data-editable="true">' + properties.name + '</td><td contenteditable="true" data-editable="true">' + properties["addr:street"] + '</td><td contenteditable="true" data-editable="true">' + properties.ele + '</td><td contenteditable="true" data-editable="true">' + lat + ',' + lng + '</td></tr>');
+                }
+            }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        spinner.classList.add('d-none');
+        raster_spinner.classList.add('d-none');
+    });
+
+  console.log("Exiting updateMap function");
+ }
+
+     $("#submit-btn").click(function(e) {
+        e.preventDefault();
+        updateMap("searchForm");
+    });
+
+    $("#raster-submit-btn").click(function(e) {
+        e.preventDefault();
+        updateMap("rasterForm");
+    });
+
+
+  document.getElementById("kepler-btn").addEventListener("click", function () {
+  const keplerMapDiv = document.getElementById("kepler-map");
+  const keplerIframe = document.getElementById("kepler-iframe");
+
+  // Set the src attribute of the iframe to the local Kepler HTML file
+  keplerIframe.src = "templates/kepler.html";
+
+  // Make the kepler-map div visible
+  keplerMapDiv.style.display = "block";
+});
+
+  $(document).ready(function() {
+    $('td[data-editable="true"]').editable();
+  });
+
+
+
+
+
+
+
+
+    document.body.appendChild(table);
+</script>
+
+{% endblock %}
