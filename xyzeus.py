@@ -1,4 +1,3 @@
-
 import os
 import subprocess
 from shapely.geometry import box
@@ -217,13 +216,32 @@ class AnalyzeLAS(Base):
 class Fetch(Base):
 
     class NWS():
-        pass
+
+        ### national weather service ###
+
+        def latlng_to_forecast(self):
+        def radar_stations(self):
+            pass
+        def weather_stations(self):
+            pass
+        def alerts(self):
+            pass
 
     class Census():
+        def census_attributes(self):
+            pass
+        def census_geographies(self):
+            pass
+
+    class CarbonMapper():
         pass
 
     class EIA():
-        pass
+
+        def reports(self):
+            pass
+        def geospatial_assets(self):
+            pass
 
     class TNM():
         pass
@@ -233,7 +251,12 @@ class Fetch(Base):
 
     class MPC():
 
-        def collection(self):
+        # microsoft planetary computer
+
+        def collections(self):
+
+        def search_collections(self, area=None, collection=None):
+
             collection_id = 'sentinel-2-l2a'
             wkt = 'POLYGON ((-164.355469 14.51978, -164.355469 25.839449, -145.195313 25.839449, -145.195313 14.51978, -164.355469 14.51978))'
 
@@ -273,13 +296,6 @@ class Fetch(Base):
 
             return gdf
 
-        def search_collections(self):
-
-            # placeholder
-
-
-            pass
-
     class TWS():
         pass
 
@@ -305,6 +321,13 @@ class Fetch(Base):
         pass
 
     class GIBS():
+        pass
+
+    class FWS():
+        pass
+
+
+    class HistoricalTopo():
         pass
 
 class Stage(Base):
