@@ -1,6 +1,6 @@
 import os
 import subprocess
-from shapely.geometry import box
+from shapely.geometry import box, LineString
 from shapely.wkt import loads
 import geopandas as geo
 import pandas as pd
@@ -244,6 +244,46 @@ class Fetch(Base):
             pass
         def census_geographies(self):
             pass
+        def secondary_roads(self, area=None):
+
+            # WKT string
+            wkt = area
+            polygon = loads(wkt)
+            minx, miny, maxx, maxy = polygon.bounds
+            bbox_str = f"{minx},{miny},{maxx},{maxy}"
+
+            url = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_PhysicalFeatures/MapServer/3/query'
+
+            # Create the parameters dictionary
+            params = {
+                'where': '1=1',  # Condition to match all records
+                'geometry': bbox_str,  # Bounding box in EPSG:4326
+                'geometryType': 'esriGeometryEnvelope',  # Type of geometry (bounding box)
+                'inSR': '4326',  # Input spatial reference
+                'spatialRel': 'esriSpatialRelIntersects',  # Spatial relationship
+                'outFields': '*',  # Fields to return
+                'returnGeometry': 'true',  # Whether to return geometry
+                'outSR': '4326',  # Output spatial reference
+                'f': 'json',  # Response format
+            }
+
+            # Make the request
+            response = requests.get(url, params=params)
+
+            if response.status_code == 200:
+                features = response.json().get('features', [])
+                df = pd.json_normalize(features)
+
+                def paths_to_linestring(paths):
+                    if paths:
+                        return LineString(paths[0])
+                    return None
+
+                df['geometry'] = df['geometry.paths'].apply(paths_to_linestring)
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+                gdf = gdf.drop(columns=['geometry.paths'])
+
+            return gdf
 
     class CarbonMapper():
 
