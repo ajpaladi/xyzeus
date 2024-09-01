@@ -490,6 +490,10 @@ class Fetch(Base):
 
     class OSM():
         pass
+    class GoogleFootprints():
+        pass
+    class MicrosoftFootprints():
+        pass
 
     class GIBS():
         pass
