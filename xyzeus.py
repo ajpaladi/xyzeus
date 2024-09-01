@@ -595,7 +595,9 @@ class Fetch(Base):
             if response.status_code == 200:
                 data = response.json()
                 for item_assets in data['item_assets']:
-                    asset_list.append(item_assets)
+                    if item_assets not in ['thumbnail', 'metadata']:
+                        asset_list.append(item_assets)
+
 
             return asset_list
 
