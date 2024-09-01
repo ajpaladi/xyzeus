@@ -6,6 +6,7 @@ import geopandas as geo
 import pandas as pd
 import requests
 from io import StringIO
+from pprint import pprint
 
 class Base():
     pass
@@ -155,11 +156,6 @@ class Convert(Base):
 
         print('Hey')
 
-
-
-
-    pass
-
 class MapZeus(Base):
 
     def choropleth(self):
@@ -251,7 +247,7 @@ class Fetch(Base):
 
     class CarbonMapper():
 
-        def sector_aggregates(self, area=None):
+        def source_aggregates(self, area=None):
 
             # Convert WKT to bounding box
             polygon = loads(area)
@@ -367,7 +363,15 @@ class Fetch(Base):
             # Now `all_data` contains all the results.
             return all_data
 
-        def plumes_annotated(self, plume_ids=None):
+        def plumes_annotated(self, plume_ids=None, area=None):
+
+            if area:
+                wkt = area
+                polygon = loads(wkt)
+                minx, miny, maxx, maxy = polygon.bounds
+                bbox_tuple = (minx, miny, maxx, maxy)
+            else:
+                bbox_tuple = None
 
 
             # Your token and URL
@@ -381,11 +385,72 @@ class Fetch(Base):
 
             # Query parameters
             params = {
-                'plume_names': f'{plume_ids}',  # Replace with your actual plume names
                 'sort': 'desc',
-                'limit': 100,
+                'limit': 1000,
                 'offset': 0
             }
+
+            if bbox_tuple:
+                params['bbox'] = bbox_tuple
+            if plume_ids:
+                if isinstance(plume_ids, str):
+                    plume_ids = [plume_ids]  # Convert single string to list
+                elif isinstance(plume_ids, set):
+                    plume_ids = list(plume_ids)  # Convert set to list
+                params['plume_names'] = plume_ids
+
+            # Make the request
+            response = requests.get(url, headers=headers, params=params)
+
+            if response.status_code == 200:
+                # Assuming 'items' is part of the response JSON
+                response_json = response.json()
+                items = response_json.get('items', [])
+
+                if items:
+                    # Use pd.json_normalize to convert items directly into a DataFrame
+                    df = pd.json_normalize(items)
+
+                else:
+                    print("No items found in the response.")
+            else:
+                print(f"Failed to retrieve data. Status code: {response.status_code}, Response: {response.text}")
+
+            return df
+
+        def scenes_annotated(self, scene_ids=None, area=None):
+
+            if area:
+                wkt = area
+                polygon = loads(wkt)
+                minx, miny, maxx, maxy = polygon.bounds
+                bbox_tuple = (minx, miny, maxx, maxy)
+            else:
+                bbox_tuple = None
+
+            token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI1ODEzNTM5LCJpYXQiOjE3MjUyMDg3MzksImp0aSI6ImMxZDc3YzIyNTdjYzRjYTE4NjhjNTAzZTRlOGEzMmQxIiwic2NvcGUiOiJzdGFjIGNhdGFsb2c6cmVhZCIsImdyb3VwcyI6IlB1YmxpYyIsImlzX3N0YWZmIjpmYWxzZSwiaXNfc3VwZXJ1c2VyIjpmYWxzZSwidXNlcl9pZCI6MTQxMX0.BrwZyZ2CaJJtrLdn2K_HCxVAabSNxvl7UljGHPjSaqg'
+            url = 'https://api.carbonmapper.org/api/v1/catalog/scenes/annotated'
+
+            # Headers with the token
+            headers = {
+                'Authorization': f'Bearer {token}',
+            }
+
+            # Query parameters
+            params = {
+                'sort': 'desc',
+                'limit': 1000,
+                'offset': 0
+            }
+
+            if bbox_tuple:
+                params['bbox'] = bbox_tuple
+            if scene_ids:
+                if isinstance(scene_ids, str):
+                    scene_ids = [scene_ids]  # Convert single string to list
+                elif isinstance(scene_ids, set):
+                    scene_ids = list(scene_ids)  # Convert set to list
+                params['ids'] = scene_ids
 
             # Make the request
             response = requests.get(url, headers=headers, params=params)
@@ -422,17 +487,35 @@ class Fetch(Base):
     class MPC():
 
         # microsoft planetary computer
+        def get_collections(self, collection_id=None):
 
-        def collections(self):
-            pass
+            url = 'https://planetarycomputer.microsoft.com/api/stac/v1/collections'
 
-        def search_collections(self, area=None, collection=None):
+            response = requests.get(url)
 
-            collection_id = 'sentinel-2-l2a'
-            wkt = 'POLYGON ((-164.355469 14.51978, -164.355469 25.839449, -145.195313 25.839449, -145.195313 14.51978, -164.355469 14.51978))'
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['collections'])
+                df = df[['id', 'title', 'keywords', 'providers', 'description', 'msft:short_description',
+                         'assets.thumbnail.href', 'extent.spatial.bbox', 'extent.temporal.interval']]
+                df = df.sort_values(by = 'title')
+
+            if collection_id:
+                df = df[df['id'] == collection_id]
+
+            return df
+
+        def collection_description(self, collection_id=None):
+
+            collections = self.get_collections(collection_id=collection_id)
+            description = collections.description.iloc[0]
+
+            return description
+
+        def search_collections(self, area=None, collection_id=None, assets=None):
 
             # timestamp
-            polygon = loads(wkt)
+            polygon = loads(area)
             minx, miny, maxx, maxy = polygon.bounds
             bbox_str = f"{minx},{miny},{maxx},{maxy}"
             print(bbox_str)
@@ -460,12 +543,58 @@ class Fetch(Base):
             token = response.json().get("token")
             print(token)
 
-            dataframe['access_url'] = dataframe['assets.visual.href'] + '?' + token
+            dataframe['access_url'] = dataframe[f'assets.{assets}.href'] + '?' + token
             dataframe['geometry'] = dataframe['bbox'].apply(lambda bbox: box(bbox[0], bbox[1], bbox[2], bbox[3]))
             gdf = geo.GeoDataFrame(dataframe, geometry='geometry')
             gdf.set_crs(epsg=4326, inplace=True)
 
             return gdf
+
+        def collection_items(self, collection_id=None):
+
+            url = f'https://planetarycomputer.microsoft.com/api/stac/v1/collections/{collection_id}/items?limit=1000'
+
+            response = requests.get(url)
+
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+            df['geometry'] = df['bbox'].apply(lambda bbox: box(bbox[0], bbox[1], bbox[2], bbox[3]))
+            gdf = geo.GeoDataFrame(df, geometry='geometry')
+            gdf.set_crs(epsg=4326, inplace=True)
+
+            return df
+
+        def collection_bands(self, collection_id=None):
+
+            url = f'https://planetarycomputer.microsoft.com/api/stac/v1/collections/{collection_id}'
+
+            response = requests.get(url)
+
+            try:
+                if response.status_code == 200:
+                    data = response.json()
+                    df = pd.json_normalize(data['summaries']['eo:bands'])
+                    return df
+            except KeyError as error:
+                print(f'No bands found for {collection_id}')
+
+        def collection_assets(self, collection_id=None):
+
+            url = f'https://planetarycomputer.microsoft.com/api/stac/v1/collections/{collection_id}'
+
+            response = requests.get(url)
+
+            asset_list = []
+
+            if response.status_code == 200:
+                data = response.json()
+                for item_assets in data['item_assets']:
+                    asset_list.append(item_assets)
+
+            return asset_list
+
 
     class TWS():
         pass
@@ -490,8 +619,10 @@ class Fetch(Base):
 
     class OSM():
         pass
+
     class GoogleFootprints():
         pass
+
     class MicrosoftFootprints():
         pass
 
