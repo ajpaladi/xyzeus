@@ -514,6 +514,8 @@ class Fetch(Base):
 
         def search_collections(self, area=None, collection_id=None, assets=None):
 
+            assets = self.collection_assets(collection_id=collection_id)
+
             # timestamp
             polygon = loads(area)
             minx, miny, maxx, maxy = polygon.bounds
@@ -543,7 +545,9 @@ class Fetch(Base):
             token = response.json().get("token")
             print(token)
 
-            dataframe['access_url'] = dataframe[f'assets.{assets}.href'] + '?' + token
+            for asset in assets:
+                dataframe[f'assets.{asset}.href'] = dataframe[f'assets.{asset}.href'] + '?' + token
+
             dataframe['geometry'] = dataframe['bbox'].apply(lambda bbox: box(bbox[0], bbox[1], bbox[2], bbox[3]))
             gdf = geo.GeoDataFrame(dataframe, geometry='geometry')
             gdf.set_crs(epsg=4326, inplace=True)
@@ -594,7 +598,6 @@ class Fetch(Base):
                     asset_list.append(item_assets)
 
             return asset_list
-
 
     class TWS():
         pass
