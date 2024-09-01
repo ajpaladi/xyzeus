@@ -5,6 +5,7 @@ from shapely.wkt import loads
 import geopandas as geo
 import pandas as pd
 import requests
+from io import StringIO
 
 class Base():
     pass
@@ -189,7 +190,21 @@ class MapZeus(Base):
         pass
 
 class Plot(Base):
-    pass
+
+    def scatter(self):
+        pass
+
+    def sankey(self):
+        pass
+
+    def bar(self):
+        pass
+
+    def sunburst(self):
+        pass
+
+    def treemap(self):
+        pass
 
 class AnalyzeVector(Base):
 
@@ -220,6 +235,7 @@ class Fetch(Base):
         ### national weather service ###
 
         def latlng_to_forecast(self):
+            pass
         def radar_stations(self):
             pass
         def weather_stations(self):
@@ -234,7 +250,161 @@ class Fetch(Base):
             pass
 
     class CarbonMapper():
-        pass
+
+        def sector_aggregates(self, area=None):
+
+            # Convert WKT to bounding box
+            polygon = loads(area)
+            minx, miny, maxx, maxy = polygon.bounds
+            bbox_tuple = (minx, miny, maxx, maxy)
+            print(bbox_tuple)
+
+            # Your token and URL
+            token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI1ODEzNTM5LCJpYXQiOjE3MjUyMDg3MzksImp0aSI6ImMxZDc3YzIyNTdjYzRjYTE4NjhjNTAzZTRlOGEzMmQxIiwic2NvcGUiOiJzdGFjIGNhdGFsb2c6cmVhZCIsImdyb3VwcyI6IlB1YmxpYyIsImlzX3N0YWZmIjpmYWxzZSwiaXNfc3VwZXJ1c2VyIjpmYWxzZSwidXNlcl9pZCI6MTQxMX0.BrwZyZ2CaJJtrLdn2K_HCxVAabSNxvl7UljGHPjSaqg'
+            url = 'https://api.carbonmapper.org/api/v1/catalog/sources/aggregate?sort=desc&limit=1000'
+
+            # Headers with the token
+            headers = {
+                'Authorization': f'Bearer {token}',
+            }
+
+            # Initialize an empty DataFrame to store all the results
+            all_data = pd.DataFrame()
+
+            # Offset and limit
+            offset = 0
+            limit = 1000
+
+            while True:
+                # Query parameters with the bounding box and pagination
+                params = {
+                    'bbox': bbox_tuple,
+                    'limit': limit,
+                    'offset': offset
+                }
+
+                # Make the request
+                response = requests.get(url, headers=headers, params=params)
+                print(response.text)
+
+                if response.status_code == 200:
+                    # Parse the JSON response
+                    response_json = response.json()
+
+                    # Assuming the JSON response is a list of dictionaries
+                    df = pd.json_normalize(response_json)
+
+                    # Concatenate the current DataFrame with the overall DataFrame
+                    all_data = pd.concat([all_data, df], ignore_index=True)
+
+                    # Check if fewer records than the limit were returned, meaning we've reached the end
+                    if len(df) < limit:
+                        break
+
+                    # Increment offset for the next batch of records
+                    offset += limit
+                else:
+                    print(f"Failed to retrieve data. Status code: {response.status_code}, Response: {response.text}")
+                    break
+
+            return all_data
+
+        def plumes(self, area=None):
+
+            # Your WKT string
+            wkt = area
+            polygon = loads(wkt)
+            minx, miny, maxx, maxy = polygon.bounds
+            bbox_tuple = (minx, miny, maxx, maxy)
+
+            # Your token and URL
+            token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI1ODEzNTM5LCJpYXQiOjE3MjUyMDg3MzksImp0aSI6ImMxZDc3YzIyNTdjYzRjYTE4NjhjNTAzZTRlOGEzMmQxIiwic2NvcGUiOiJzdGFjIGNhdGFsb2c6cmVhZCIsImdyb3VwcyI6IlB1YmxpYyIsImlzX3N0YWZmIjpmYWxzZSwiaXNfc3VwZXJ1c2VyIjpmYWxzZSwidXNlcl9pZCI6MTQxMX0.BrwZyZ2CaJJtrLdn2K_HCxVAabSNxvl7UljGHPjSaqg'
+            url = 'https://api.carbonmapper.org/api/v1/catalog/plume-csv?sort=desc&limit=1000'
+
+            # Headers with the token
+            headers = {
+                'Authorization': f'Bearer {token}',
+            }
+
+            # Initialize an empty DataFrame to store all the results
+            all_data = pd.DataFrame()
+
+            # Offset and limit
+            offset = 0
+            limit = 1000
+            while True:
+                # Query parameters with the bounding box and pagination
+                params = {
+                    'bbox': bbox_tuple,
+                    'limit': limit,
+                    'offset': offset
+                }
+
+                # Make the request
+                response = requests.get(url, headers=headers, params=params)
+
+                if response.status_code == 200:
+                    # Read the response into a DataFrame
+                    data = StringIO(response.text)
+                    df = pd.read_csv(data)
+
+                    # Rename columns
+                    df = df.rename(columns={'plume_latitude': 'latitude', 'plume_longitude': 'longitude'})
+
+                    # Append the data to the overall DataFrame
+                    all_data = pd.concat([all_data, df], ignore_index=True)
+
+                    # Check if we've received fewer results than the limit, indicating the end of the data
+                    if len(df) < limit:
+                        break
+
+                    # Increment the offset to get the next "page"
+                    offset += limit
+                else:
+                    print(f"Failed to retrieve data. Status code: {response.status_code}, Response: {response.text}")
+                    break
+
+            # Now `all_data` contains all the results.
+            return all_data
+
+        def plumes_annotated(self, plume_ids=None):
+
+
+            # Your token and URL
+            token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI1ODEzNTM5LCJpYXQiOjE3MjUyMDg3MzksImp0aSI6ImMxZDc3YzIyNTdjYzRjYTE4NjhjNTAzZTRlOGEzMmQxIiwic2NvcGUiOiJzdGFjIGNhdGFsb2c6cmVhZCIsImdyb3VwcyI6IlB1YmxpYyIsImlzX3N0YWZmIjpmYWxzZSwiaXNfc3VwZXJ1c2VyIjpmYWxzZSwidXNlcl9pZCI6MTQxMX0.BrwZyZ2CaJJtrLdn2K_HCxVAabSNxvl7UljGHPjSaqg'
+            url = 'https://api.carbonmapper.org/api/v1/catalog/plumes/annotated'
+
+            # Headers with the token
+            headers = {
+                'Authorization': f'Bearer {token}',
+            }
+
+            # Query parameters
+            params = {
+                'plume_names': f'{plume_ids}',  # Replace with your actual plume names
+                'sort': 'desc',
+                'limit': 100,
+                'offset': 0
+            }
+
+            # Make the request
+            response = requests.get(url, headers=headers, params=params)
+
+            if response.status_code == 200:
+                # Assuming 'items' is part of the response JSON
+                response_json = response.json()
+                items = response_json.get('items', [])
+
+                if items:
+                    # Use pd.json_normalize to convert items directly into a DataFrame
+                    df = pd.json_normalize(items)
+
+                else:
+                    print("No items found in the response.")
+            else:
+                print(f"Failed to retrieve data. Status code: {response.status_code}, Response: {response.text}")
+
+            return df
 
     class EIA():
 
@@ -254,6 +424,7 @@ class Fetch(Base):
         # microsoft planetary computer
 
         def collections(self):
+            pass
 
         def search_collections(self, area=None, collection=None):
 
@@ -325,7 +496,6 @@ class Fetch(Base):
 
     class FWS():
         pass
-
 
     class HistoricalTopo():
         pass
