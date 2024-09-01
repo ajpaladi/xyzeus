@@ -103,28 +103,122 @@ class Convert(Base):
     pass
 
 class MapZeus(Base):
-    pass
+
+    def choropleth(self):
+        pass
+
+    def scatter(self):
+        pass
+
+    def heatmap(self):
+        pass
+
+    def hex_heatmap(self):
+        pass
+
+    def kepler(self):
+        pass
+
+    def pydeck(self):
+        pass
+
+    def folium(self):
+        pass
+
+    def ipyleaflet(self):
+        pass
+
+    def raster_plot(self):
+        pass
 
 class Plot(Base):
     pass
 
 class AnalyzeVector(Base):
-    pass
+
+    def buffer(self):
+        pass
+
+    def split(self):
+        pass
 
 class AnalyzeRaster(Base):
-    pass
+
+    def hillshade(self):
+        pass
+
+    def contour(self):
+        pass
+
+    def slope_analysis(self):
+        pass
 
 class AnalyzeLAS(Base):
     pass
 
 class Fetch(Base):
-    pass
+
+    class NWS():
+        pass
+
+    class Census():
+        pass
+
+    class EIA():
+        pass
+
+    class TNM():
+        pass
+
+    class GEE():
+        pass
+
+    class MPS():
+        pass
+
+    class TWS():
+        pass
+
+    class SoilGrids():
+        pass
+
+    class GFW():
+        ### global forest watch
+        pass
+
+    class NASA():
+
+        def firms(self):
+            pass
+
+    class OpenTopo():
+        pass
+
+    class Overture():
+        pass
+
+    class OSM():
+        pass
+
+    class GIBS():
+        pass
 
 class Stage(Base):
     pass
 
 class CV(Base):
+
+    def segment(self):
+        pass
     pass
 
+class WhatsHere(Base):
+    pass
+
+class Export(Base):
+    pass
+
+class Pipeline(Base):
+    pass
 
 
