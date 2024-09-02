@@ -302,6 +302,62 @@ class Fetch(Base):
 
     class Census():
 
+        def block_group_demographics(self, state=None):
+
+            attributes = [
+                "pct_Female_No_SP_CEN_2020",
+                "pct_Females_CEN_2020",
+                "pct_Males_CEN_2020",
+                "pct_MrdCple_HHD_CEN_2020",
+                "pct_NH_AIAN_alone_CEN_2020",
+                "pct_NH_Asian_alone_CEN_2020",
+                "pct_NH_Blk_alone_CEN_2020",
+                "pct_NH_Multi_Races_CEN_2020",
+                "pct_NH_NHOPI_alone_CEN_2020",
+                "pct_NH_SOR_alone_CEN_2020",
+                "pct_NH_White_alone_CEN_2020",
+                "pct_NonFamily_HHD_CEN_2020",
+                "pct_Not_MrdCple_HHD_CEN_2020",
+                "pct_Owner_Occp_HU_CEN_2020",
+                "pct_Pop_18_24_CEN_2020",
+                "pct_Pop_25_44_CEN_2020",
+                "pct_Pop_45_64_CEN_2020",
+                "pct_Pop_5_17_CEN_2020",
+                "pct_Pop_65plus_CEN_2020",
+                "pct_Pop_under_5_CEN_2020",
+                "pct_Rel_Family_HHD_CEN_2020",
+                "pct_Renter_Occp_HU_CEN_2020",
+                "pct_RURAL_POP_CEN_2020",
+                "pct_URBAN_POP_CEN_2020",
+                "pct_Sngl_Prns_HHD_CEN_2020",
+                "pct_Tot_Occp_Units_CEN_2020",
+                "pct_Vacant_Units_CEN_2020"
+            ]
+
+            basic_params = ["State_name", "County_name", "GIDBG"]
+            all_params = basic_params + attributes
+            params_str = ','.join(all_params)
+
+            url = f"https://api.census.gov/data/2023/pdb/blockgroup?get={params_str}&for=block%20group:*&in=state:{state}&in=county:*&in=tract:*"
+
+            response = requests.get(url)
+            data = response.json()
+            headers = data[0]
+            data = data[1:]
+
+            # Create DataFrame
+            df = pd.DataFrame(data, columns=headers)
+
+            return df
+
+        def enrich_block_groups(self, state=None):
+
+            geoms = self.blockgroups(state=state)
+            demos = self.block_group_demographics(state=state)
+            enriched = demos.merge(geoms, on='GIDBG')
+
+            return enriched
+
         def state_dict(self):
 
             state_dict = {
@@ -1593,15 +1649,28 @@ class Fetch(Base):
 
     class MoveBank():
 
-        url = 'https://github.com/movebank/movebank-api-doc/blob/master/movebank-api.md'
+        def get_studies(self):
+            # Replace these with your actual username and password
+            # api documentation ~ https://github.com/movebank/movebank-api-doc/blob/master/movebank-api.md#introduction
 
-        pass
+            username = '************'
+            password = '*************'
+
+            # URL to access
+            url = 'https://www.movebank.org/movebank/service/direct-read?entity_type=study'
+
+            # Make the GET request with Basic Authentication
+            response = requests.get(url, auth=(username, password))
+            print(response.text)
 
     class FEC():
 
         # ec api
         #url = 'https://api.open.fec.gov/swagger/'
 
+        pass
+
+    class WikiGeo():
         pass
 
 
