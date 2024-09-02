@@ -1,6 +1,6 @@
 import os
 import subprocess
-from shapely.geometry import box, LineString
+from shapely.geometry import box, LineString, Polygon
 from shapely.wkt import loads
 import geopandas as geo
 import pandas as pd
@@ -230,20 +230,126 @@ class Fetch(Base):
 
         ### national weather service ###
 
-        def latlng_to_forecast(self):
-            pass
+        def latlng_to_forecast(self, wkt_point=None, latlng=None):
+            if wkt_point:
+                point = loads(wkt_point)
+                lat, lng = point.y, point.x
+                url = f'https://api.weather.gov/points/{lat},{lng}'
+            elif latlng:
+                lat, lng = latlng[1], latlng[0]
+                url = f'https://api.weather.gov/points/{lat},{lng}'
+            else:
+                print('Must provide wkt_point or latlng')
+                return None
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['properties'])
+                forecast_url = df['forecast'].iloc[0]
+
+                response = requests.get(forecast_url)
+                if response.status_code == 200:
+                    forecast_data = response.json()
+                    forecast_df = pd.json_normalize(forecast_data['properties']['periods'])
+                    return forecast_df
+                else:
+                    print(f"Failed to fetch forecast data: {response.status_code}")
+                    return None
+            else:
+                print(f"Failed to fetch point data: {response.status_code}")
+                return None
+
         def radar_stations(self):
             pass
+
         def weather_stations(self):
-            pass
+
+            # Initialize an empty list to store data
+            all_data = []
+
+            # url = 'https://api.weather.gov/stations?state=WV&limit=500'
+            url = 'https://api.weather.gov/stations'
+
+            while url:
+                response = requests.get(url)
+
+                if response.status_code == 200:
+                    data = response.json()
+                    features = data.get('features', [])
+
+                    if not features:  # Break if features list is empty
+                        break
+
+                    all_data.extend(features)
+
+                    # Get the next URL for pagination, if exists
+                    url = data.get('pagination', {}).get('next', None)
+                else:
+                    print(f"Failed to fetch data: {response.status_code}")
+                    break
+
+            # Normalize the data into a DataFrame
+            df = pd.json_normalize(all_data)
+            df[['longitude', 'latitude']] = pd.DataFrame(df['geometry.coordinates'].tolist(), index=df.index)
+            df = df.drop(columns=['geometry.coordinates'])
+
+            return df
+
         def alerts(self):
             pass
 
     class Census():
         def census_attributes(self):
             pass
+
         def census_geographies(self):
             pass
+
+        def states(self, state=None):
+
+            url = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Census2020/MapServer/80/query'
+
+            # Initialize variables
+            all_features = []
+            chunk_size = 50
+            offset = 0
+
+            if state:
+                where_clause = f"STATE = '{state}'"
+            else:
+                where_clause = '1=1'
+
+            # Fetch data in chunks
+            while True:
+                params = {
+                    'where': where_clause,
+                    'outFields': '*',
+                    'f': 'json',
+                    'returnGeometry': 'true',
+                    'geometryType': 'esriGeometryPolygon',
+                    'resultRecordCount': chunk_size,
+                    'resultOffset': offset
+                }
+
+                response = requests.get(url, params=params)
+
+                if response.status_code == 200:
+                    features = response.json().get('features', [])
+                    if not features:
+                        break
+                    all_features.extend(features)
+                    offset += chunk_size
+                    print(f"Fetched {len(features)} features. Total so far: {len(all_features)}")
+                else:
+                    print(f"Failed to retrieve data. Status code: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_features)
+            df['geometry'] = df['geometry.rings'].apply(lambda x: Polygon(x[0]) if x else None)
+            gdf = geo.GeoDataFrame(df, geometry='geometry', crs='EPSG:3857')
+            gdf = gdf.to_crs('EPSG:4326')
+
         def secondary_roads(self, area=None):
 
             # WKT string
@@ -284,6 +390,45 @@ class Fetch(Base):
                 gdf = gdf.drop(columns=['geometry.paths'])
 
             return gdf
+
+        def linear_hydrography(self, area=None):
+
+            url = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_PhysicalFeatures/MapServer/10/query'
+
+            # Initialize variables
+            all_features = []
+            chunk_size = 10000  # did have 1000 in here
+            offset = 0
+
+            # Fetch data in chunks
+            while True:
+                params = {
+                    'where': '1=1',
+                    'outFields': '*',
+                    'f': 'json',
+                    'returnGeometry': 'true',
+                    'geometryType': 'esriGeometryPolygon',
+                    'resultRecordCount': chunk_size,
+                    'resultOffset': offset
+                }
+
+                response = requests.get(url, params=params)
+
+                if response.status_code == 200:
+                    features = response.json().get('features', [])
+                    if not features:
+                        break
+                    all_features.extend(features)
+                    offset += chunk_size
+                    print(f"Fetched {len(features)} features. Total so far: {len(all_features)}")
+                else:
+                    print(f"Failed to retrieve data. Status code: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_features)
+            df['geometry'] = df['geometry.paths'].apply(lambda x: LineString(x[0]) if x else None)
+            gdf = geo.GeoDataFrame(df, geometry='geometry', crs='EPSG:3857')
+            gdf = gdf.to_crs('EPSG:4326')
 
     class CarbonMapper():
 
@@ -678,6 +823,12 @@ class Fetch(Base):
         pass
 
     class HistoricalTopo():
+        pass
+
+    class MoveBank():
+
+        url = 'https://github.com/movebank/movebank-api-doc/blob/master/movebank-api.md'
+
         pass
 
 class Stage(Base):
