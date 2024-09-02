@@ -339,6 +339,56 @@ class Fetch(Base):
             params_str = ','.join(all_params)
 
             url = f"https://api.census.gov/data/2023/pdb/blockgroup?get={params_str}&for=block%20group:*&in=state:{state}&in=county:*&in=tract:*"
+            print(url)
+
+            response = requests.get(url)
+            data = response.json()
+            headers = data[0]
+            data = data[1:]
+
+            # Create DataFrame
+            df = pd.DataFrame(data, columns=headers)
+
+            return df
+
+        def tract_demographics(self, state=None):
+
+            attributes = [
+                "pct_Female_No_SP_CEN_2020",
+                "pct_Females_CEN_2020",
+                "pct_Males_CEN_2020",
+                "pct_MrdCple_HHD_CEN_2020",
+                "pct_NH_AIAN_alone_CEN_2020",
+                "pct_NH_Asian_alone_CEN_2020",
+                "pct_NH_Blk_alone_CEN_2020",
+                "pct_NH_Multi_Races_CEN_2020",
+                "pct_NH_NHOPI_alone_CEN_2020",
+                "pct_NH_SOR_alone_CEN_2020",
+                "pct_NH_White_alone_CEN_2020",
+                "pct_NonFamily_HHD_CEN_2020",
+                "pct_Not_MrdCple_HHD_CEN_2020",
+                "pct_Owner_Occp_HU_CEN_2020",
+                "pct_Pop_18_24_CEN_2020",
+                "pct_Pop_25_44_CEN_2020",
+                "pct_Pop_45_64_CEN_2020",
+                "pct_Pop_5_17_CEN_2020",
+                "pct_Pop_65plus_CEN_2020",
+                "pct_Pop_under_5_CEN_2020",
+                "pct_Rel_Family_HHD_CEN_2020",
+                "pct_Renter_Occp_HU_CEN_2020",
+                "pct_RURAL_POP_CEN_2020",
+                "pct_URBAN_POP_CEN_2020",
+                "pct_Sngl_Prns_HHD_CEN_2020",
+                "pct_Tot_Occp_Units_CEN_2020",
+                "pct_Vacant_Units_CEN_2020"
+            ]
+
+            basic_params = ["State_name", "County_name", "GIDTR"]
+            all_params = basic_params + attributes
+            params_str = ','.join(all_params)
+
+            url = f"https://api.census.gov/data/2023/pdb/tract?get={params_str}&for=tract:*&in=state:{state}&in=county:*&in=tract:*"
+            print(url)
 
             response = requests.get(url)
             data = response.json()
@@ -357,6 +407,15 @@ class Fetch(Base):
             enriched = demos.merge(geoms, on='GIDBG')
 
             return enriched
+
+        def enrich_tracts(self, state=None):
+
+            geoms = self.tracts(state=state)
+            demos = self.tract_demographics(state=state)
+            enriched = demos.merge(geoms, on='GIDTR')
+
+            return enriched
+
 
         def state_dict(self):
 
@@ -580,7 +639,7 @@ class Fetch(Base):
             while True:
                 params = {
                     'where': where_clause,
-                    'outFields': 'STATE, COUNTY, TRACT',  # Minimal fields
+                    'outFields': 'STATE, COUNTY, TRACT, OID, GEOID, BASENAME, NAME',  # Minimal fields
                     'f': 'json',
                     'returnGeometry': 'true',
                     'geometryType': 'esriGeometryPolygon',
@@ -608,6 +667,7 @@ class Fetch(Base):
                 gdf = geo.GeoDataFrame(df, geometry='geometry', crs='EPSG:3857')
                 gdf = gdf.to_crs('EPSG:4326')
                 gdf = gdf.drop(columns = 'geometry.rings')
+                gdf = gdf.rename(columns = {'attributes.GEOID':'GIDTR'})
                 return gdf
             else:
                 print("No features fetched.")
