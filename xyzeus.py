@@ -1,6 +1,6 @@
 import os
 import subprocess
-from shapely.geometry import box, LineString, Polygon
+from shapely.geometry import box, LineString, Polygon, Point
 from shapely.wkt import loads
 import geopandas as geo
 import pandas as pd
@@ -301,8 +301,113 @@ class Fetch(Base):
             pass
 
     class Census():
+
+        def state_dict(self):
+
+            state_dict = {
+                "Puerto Rico": 72,
+                "Wyoming": 56,
+                "Wisconsin": 55,
+                "West Virginia": 54,
+                "Washington": 53,
+                "Virginia": 51,
+                "Vermont": 50,
+                "Utah": 49,
+                "Texas": 48,
+                "Tennessee": 47,
+                "South Dakota": 46,
+                "South Carolina": 45,
+                "Rhode Island": 44,
+                "Pennsylvania": 42,
+                "Oregon": 41,
+                "Oklahoma": 40,
+                "Ohio": 39,
+                "North Dakota": 38,
+                "North Carolina": 37,
+                "New York": 36,
+                "New Mexico": 35,
+                "New Jersey": 34,
+                "New Hampshire": 33,
+                "Nevada": 32,
+                "Nebraska": 31,
+                "Montana": 30,
+                "Missouri": 29,
+                "Mississippi": 28,
+                "Minnesota": 27,
+                "Michigan": 26,
+                "Massachusetts": 25,
+                "Maryland": 24,
+                "Maine": 23,
+                "Louisiana": 22,
+                "Kentucky": 21,
+                "Kansas": 20,
+                "Iowa": 19,
+                "Indiana": 18,
+                "Illinois": 17,
+                "Idaho": 16,
+                "Hawaii": 15,
+                "Georgia": 13,
+                "Florida": 12,
+                "District of Columbia": 11,
+                "Delaware": 10,
+                "Connecticut": 9,
+                "Colorado": 8,
+                "California": 6,
+                "Arkansas": 5,
+                "Arizona": 4,
+                "Alaska": 2,
+                "Alabama": 1
+            }
+
+            return state_dict
+
         def census_attributes(self):
             pass
+
+        def block_group_attributes(self, state=None):
+
+            # List of FIPS codes for all states
+
+            if state:
+                state = str(state)
+                if isinstance(state, str):
+                    state_fips_codes = [state]
+            else:
+                state_fips_codes = [
+                    '01', '02', '04', '05', '06', '08', '09', '10', '11', '12', '13', '15', '16', '17', '18', '19',
+                    '20', '21', '22', '23',
+                    '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39',
+                    '40', '41', '42', '44',
+                    '45', '46', '47', '48', '49', '50', '51', '53', '54', '55', '56'
+                ]
+
+            # Initialize an empty list to hold all data
+            all_data = []
+
+            # Iterate over each state FIPS code
+            for state_fips in state_fips_codes:
+                # Construct the URL for the current state
+                url = f'https://api.census.gov/data/2023/pdb/blockgroup?get=State_name,County_name&for=block%20group:*&in=state:{state_fips}%20county:*'
+                # Make the API call
+                response = requests.get(url)
+                # Check if the request was successful
+                if response.status_code == 200:
+                    data = response.json()
+                    # Append data (skip the headers for subsequent calls)
+                    if not all_data:
+                        all_data.extend(data)
+                    else:
+                        all_data.extend(data[1:])
+                    print(f"Fetched data for state FIPS: {state_fips}")
+                else:
+                    print(f"Failed to retrieve data for state FIPS: {state_fips}, Status code: {response.status_code}")
+
+            # Create a DataFrame from the combined data
+            headers = all_data[0]
+            rows = all_data[1:]
+            df = pd.DataFrame(rows, columns=headers)
+
+            return df
 
         def census_geographies(self):
             pass
@@ -350,6 +455,163 @@ class Fetch(Base):
             df['geometry'] = df['geometry.rings'].apply(lambda x: Polygon(x[0]) if x else None)
             gdf = geo.GeoDataFrame(df, geometry='geometry', crs='EPSG:3857')
             gdf = gdf.to_crs('EPSG:4326')
+
+        def counties(self, state=None):
+
+            url = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/1/query'
+
+            # Initialize variables
+            all_features = []
+            chunk_size = 200
+            offset = 0
+
+            if state:
+                where_clause = f"STATE = '{state}'"
+            else:
+                where_clause = '1=1'
+
+            # Fetch data in chunks
+            while True:
+                params = {
+                    'where': where_clause,
+                    'outFields': '*',
+                    'f': 'json',
+                    'returnGeometry': 'true',
+                    'geometryType': 'esriGeometryPolygon',
+                    'resultRecordCount': chunk_size,
+                    'resultOffset': offset
+                }
+
+                response = requests.get(url, params=params)
+
+                if response.status_code == 200:
+                    features = response.json().get('features', [])
+                    if not features:
+                        break
+                    all_features.extend(features)
+                    offset += chunk_size
+                    print(f"Fetched {len(features)} features. Total so far: {len(all_features)}")
+                else:
+                    print(f"Failed to retrieve data. Status code: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_features)
+            df['geometry'] = df['geometry.rings'].apply(lambda x: Polygon(x[0]) if x else None)
+            gdf = geo.GeoDataFrame(df, geometry='geometry', crs='EPSG:3857')
+            gdf = gdf.to_crs('EPSG:4326')
+            gdf = gdf.drop(columns = 'geometry.rings')
+
+            return gdf
+
+        def tracts(self, state=None):
+
+            # Define the URL for the ArcGIS REST service
+            url = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/0/query'
+
+            # Initialize variables
+            all_features = []
+            chunk_size = 500  # Try reducing chunk size
+            offset = 0
+            state_fips_code = state  # Example: Montana
+
+            if state:
+                where_clause = f"STATE='{state_fips_code}'"
+            else:
+                where_clause = '1=1'
+
+
+            # Fetch data in chunks
+            while True:
+                params = {
+                    'where': where_clause,
+                    'outFields': 'STATE, COUNTY, TRACT',  # Minimal fields
+                    'f': 'json',
+                    'returnGeometry': 'true',
+                    'geometryType': 'esriGeometryPolygon',
+                    'resultRecordCount': chunk_size,
+                    'resultOffset': offset
+                }
+
+                response = requests.get(url, params=params)
+
+                if response.status_code == 200:
+                    features = response.json().get('features', [])
+                    if not features:
+                        break
+                    all_features.extend(features)
+                    offset += chunk_size
+                    print(f"Fetched {len(features)} features. Total so far: {len(all_features)}")
+                else:
+                    print(f"Failed to retrieve data. Status code: {response.status_code}")
+                    break
+
+            # Normalize the features into a DataFrame
+            if all_features:
+                df = pd.json_normalize(all_features)
+                df['geometry'] = df['geometry.rings'].apply(lambda x: Polygon(x[0]) if x else None)
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs='EPSG:3857')
+                gdf = gdf.to_crs('EPSG:4326')
+                gdf = gdf.drop(columns = 'geometry.rings')
+                return gdf
+            else:
+                print("No features fetched.")
+
+        def blockgroups(self, state=None):
+
+            # Define the URL for the ArcGIS REST service
+            url = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/5/query'
+
+            # Initialize variables
+            all_features = []
+            chunk_size = 500  # Try reducing chunk size
+            offset = 0
+            state_fips_code = state  # Example: Montana
+
+            # Fetch data in chunks
+            while True:
+                params = {
+                    'where': f"STATE='{state_fips_code}'",
+                    'outFields': 'STATE, COUNTY, TRACT, BLKGRP',  # Minimal fields
+                    'f': 'json',
+                    'returnGeometry': 'true',
+                    'geometryType': 'esriGeometryPolygon',
+                    'resultRecordCount': chunk_size,
+                    'resultOffset': offset
+                }
+
+                response = requests.get(url, params=params)
+
+                if response.status_code == 200:
+                    features = response.json().get('features', [])
+                    if not features:
+                        break
+                    all_features.extend(features)
+                    offset += chunk_size
+                    print(f"Fetched {len(features)} features. Total so far: {len(all_features)}")
+                else:
+                    print(f"Failed to retrieve data. Status code: {response.status_code}")
+                    break
+
+            # Normalize the features into a DataFrame
+            if all_features:
+                df = pd.json_normalize(all_features)
+                df['geometry'] = df['geometry.rings'].apply(lambda x: Polygon(x[0]) if x else None)
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs='EPSG:3857')
+                gdf = gdf.to_crs('EPSG:4326')
+
+                # Combine attributes to create GIDBG
+                gdf['attributes.STATE'] = gdf['attributes.STATE'].astype(str)
+                gdf['attributes.COUNTY'] = gdf['attributes.COUNTY'].astype(str)
+                gdf['attributes.TRACT'] = gdf['attributes.TRACT'].astype(str)
+                gdf['attributes.BLKGRP'] = gdf['attributes.BLKGRP'].astype(str)
+                gdf['GIDBG'] = gdf['attributes.STATE'] + gdf['attributes.COUNTY'] + gdf['attributes.TRACT'] + gdf[
+                    'attributes.BLKGRP']
+                gdf = gdf.drop(columns='geometry.rings')
+
+            else:
+                print("No features fetched.")
+
+            return gdf
 
         def secondary_roads(self, area=None):
 
@@ -659,10 +921,414 @@ class Fetch(Base):
 
     class EIA():
 
+        def report_dictionary(self):
+
+            eia_dict = {
+                'coal': {
+                    'shipments': [
+                        'mined-state-aggregates',
+                        'receipts',
+                        'mine-aggregates',
+                        'plant-state-aggregates',
+                        'plant-aggregates',
+                        'by-mine-by-plant'
+                    ],
+                    'consumption-and-quality': [],
+                    'aggregate-production': [],
+                    'exports-import-quantity-price': [],
+                    'market-sales-price': [],
+                    'mine-production': [],
+                    'price-by-rank': []
+                },
+                'crude-oil-imports': [],
+                'electricity': {
+                    'retail-sales': [],
+                    'electric-power-operational-data': [],
+                    'rto': [
+                        'region-data',
+                        'fuel-type-data',
+                        'region-sub-ba-data',
+                        'interchange-data',
+                        'daily-region-data',
+                        'daily-region-sub-ba-data',
+                        'daily-fuel-type-data',
+                        'daily-interchange-data'
+                    ],
+                    'state-electricity-profiles': [
+                        'emissions-by-state-by-fuel',
+                        'source-disposition',
+                        'capability',
+                        'energy-efficiency',
+                        'net-metering',
+                        'meters',
+                        'summary'
+                    ],
+                    'operating-generator-capacity': [],
+                    'facility-fuel': []
+                },
+                'international': {},
+                'natural-gas': {
+                    'sum': [
+                        'snd',
+                        'lsum',
+                        'sndm'
+                    ],
+                    'pri': [
+                        'sum',
+                        'fut',
+                        'rescom'
+                    ],
+                    'enr': [
+                        'sum',
+                        'cplc',
+                        'dry',
+                        'wals',
+                        'nang',
+                        'adng',
+                        'ngl',
+                        'ngpl',
+                        'lc',
+                        'coalbed',
+                        'shalegas',
+                        'deep',
+                        'nprod',
+                        'drill',
+                        'wellend',
+                        'seis',
+                        'wellfoot',
+                        'welldep',
+                        'wellcost'
+                    ],
+                    'prod': [
+                        'oilwells',
+                        'sum',
+                        'whv',
+                        'off',
+                        'deep',
+                        'ngpl',
+                        'lc',
+                        'coalbed',
+                        'shalegas',
+                        'ss',
+                        'wells',
+                        'pp'
+                    ],
+                    'move': [
+                        'impc',
+                        'expc',
+                        'state',
+                        'poe1',
+                        'poe2',
+                        'ist'
+                    ],
+                    'stor': [
+                        'wkly',
+                        'sum',
+                        'type',
+                        'lng',
+                        'cap'
+                    ],
+                    'cone': [
+                        'sum',
+                        'num',
+                        'pns',
+                        'acct',
+                        'heat'
+                    ]
+                },
+                'nuclear-outages': {
+                    'us-nuclear-outages': [],
+                    'generator-nuclear-outages': [],
+                    'facility-nuclear-outages': []
+                },
+                'petroleum': {
+                    'sum': [
+                        'b100',
+                        'snd',
+                        'sndw',
+                        'crdsnd',
+                        'mkt'
+                    ],
+                    'pri': [
+                        'gnd',
+                        'spt',
+                        'fut',
+                        'wfr',
+                        'refmg',
+                        'refmg2',
+                        'refoth',
+                        'allmg',
+                        'dist',
+                        'prop',
+                        'resid',
+                        'dfp1',
+                        'dfp2',
+                        'dfp3',
+                        'rac2',
+                        'imc1',
+                        'imc2',
+                        'imc3',
+                        'land1',
+                        'land2',
+                        'land3',
+                        'ipct'
+                    ],
+                    'crd': [
+                        'pres',
+                        'cplc',
+                        'nprod',
+                        'crpdn',
+                        'api',
+                        'gom',
+                        'drill',
+                        'wellend',
+                        'seis',
+                        'wellfoot',
+                        'welldep',
+                        'wellcost'
+                    ],
+                    'pnp': [
+                        'wiup',
+                        'wprodrb',
+                        'wprodr',
+                        'wprodb',
+                        'wprode',
+                        'inpt',
+                        'inpt2',
+                        'inpt3',
+                        'refp',
+                        'refp2',
+                        'refp3',
+                        'oxy',
+                        'capbio',
+                        'unc',
+                        'crq',
+                        'dwns',
+                        'pct',
+                        'cap1',
+                        'capchg',
+                        'capprod',
+                        'capfuel',
+                        'feedng',
+                        'capwork',
+                        'capshell',
+                        'caprec',
+                        'bioplfuel',
+                        'gp'
+                    ],
+                    'move': [
+                        'expcp',
+                        'wkly',
+                        'wimpc',
+                        'imp',
+                        'imp2',
+                        'res',
+                        'exp',
+                        'expc',
+                        'neti',
+                        'imc1',
+                        'imc2',
+                        'imc3',
+                        'land1',
+                        'land2',
+                        'land3',
+                        'ipct',
+                        'ptb',
+                        'pipe',
+                        'tb',
+                        'netr',
+                        'impcus',
+                        'impcp',
+                        'rail',
+                        'railNA'
+                    ],
+                    'stoc': [
+                        'ts',
+                        'wstk',
+                        'typ',
+                        'st',
+                        'cu',
+                        'ref',
+                        'gp'
+                    ],
+                    'cons': [
+                        'wpsup',
+                        'psup',
+                        'prim',
+                        'refmg',
+                        'refoth',
+                        'refres',
+                        '821dst',
+                        '821dsta',
+                        '821rsd',
+                        '821rsda',
+                        '821ker',
+                        '821kera',
+                        '821use',
+                        '821usea'
+                    ]
+                },
+                'seds': [],
+                'steo': [],
+                'densified-biomass': {
+                    'capacity-by-region': [],
+                    'sales-and-price-by-region': [],
+                    'export-sales-and-price': [],
+                    'feedstocks-and-cost': [],
+                    'production-by-region': [],
+                    'characteristics-by-region': [],
+                    'inventories-by-region': [],
+                    'wood-pellet-plants': []
+                },
+                'total-energy': [],
+                'aeo': [],
+                'ieo': [],
+                'co2-emissions': {
+                    'co2-emissions-aggregates': [],
+                    'co2-emissions-and-carbon-coefficients': []
+                }
+            }
+
+            return eia_dict
+
         def reports(self):
             pass
-        def geospatial_assets(self):
-            pass
+
+        def eia_geo_datasets(self):
+
+            eia_geo_dataset_dict = {
+                'Battery_Storage_Plants': '0',
+                'Biomass_Plants_Testing_view': '0',
+                'BorderCrossing_Electric_EIA': '0',
+                'BorderCrossing_Liquids_EIA': '0',
+                'BorderCrossing_NaturalGas_EIA': '0',
+                'Coal_Power_Plants': '0',
+                'CrudeOil_Pipelines_US_EIA': '0',
+                'CrudeOil_RailTerminals_US_EIA': '0',
+                'Dissolve_Climate_Zones_DOE_BA': '0',
+                'ElectricPowerPlants': '0',
+                'Geothermal_Potential': '0',
+                'Geothermal_Power_Plants': '0',
+                'HGL_Market_Hubs': '0',
+                'HGL_Pipelines_US_EIA': '0',
+                'Hydro_Pumped_Storage_Power_Plants': '0',
+                'Hydroelectric_Power_Plants': '0',
+                'Market_Hubs_Natural_Gas': '0',
+                'Natural_Gas_Power_Plants': '0',
+                'Natural_Gas_Storage_Regions': '0',
+                'NaturalGas_InterIntrastate_Pipelines_US_EIA': '0',
+                'NERC_Regions_EIA': '0',
+                'NREL_Offshore_Wind_Speed_90m': '0',
+                'Other_Power_Plants': '0',
+                'PADD_EIA': '0',
+                'Petroleum_Ports': '0',
+                'Petroleum_Power_Plants': '0',
+                'PetroleumProduct_Pipelines_US_EIA': '0',
+                'Solar_Power_Plants': '0',
+                'Solar_Resources': '0',
+                'Solid_Biomass_Resources': '0',
+                'TightOil_ShaleGas_Plays_Lower48_EIA': '0',
+                'Uranium_AssociatedPhosphateResources_US_EIA': '0',
+                'Uranium_IdentifiedResourceAreas_US_EIA': '0',
+                'US_Census_Regions_Divisions': '0',
+                'Wells_Gas_Generalized': '0',
+                'Wells_Oil_Generalized': '0',
+                'Wind_Power_Plants': '0',
+                'wtk_conus_100m_mean_int_clip': '0',
+                'US_RECSData2': '1',
+                'Oil_Wells': '0',
+                'Natural_Gas_Wells': '0',
+                'Power_Plants_Testing': '0',
+                'Ethylene_Crackers_US_EIA': '253',
+                'Renewable_Diesel_and_Other_Biofuels': '245',
+                'Petroleum_Refineries_US_EIA': '22',
+                'Biodiesel_Plants_US_EIA': '113',
+                'Ethanol_Plants_US_EIA': '112',
+                'PetroleumProduct_Terminals_US_EIA': '36',
+                'Natural_Gas_Underground_Storage': '39',
+                'Northeast_Petroleum_Reserves': '41',
+                'SPR_US_EIA': '42',
+                'NaturalGas_ProcessingPlants_US_EIA': '23',
+                'CoalMines_US_EIA': '247',
+                'Uranium_Mills_HeapLeachFacilities_US_EIA': '148',
+                'Uranium_InSituLeachPlants_US_EIA': '149',
+                'Lng_ImportExportTerminals_US_EIA': '0',
+                'SedimentaryBasins_US_EIA': '109'
+            }
+
+            return eia_geo_dataset_dict
+
+        def eia_geo(self, dataset=None):
+
+            # Placeholder for dataset dictionary
+            dataset_dict = self.eia_geo_datasets()
+            query_num = dataset_dict[f'{dataset}']
+
+            if dataset == 'CoalMines_US_EIA':
+                query_num = '247'
+
+            # Base URL for the ArcGIS service
+            url = f'https://services7.arcgis.com/FGr1D95XCGALKXqM/arcgis/rest/services/{dataset}/FeatureServer/{query_num}/query'
+            print(url)
+
+            # Parameters for the query
+            params = {
+                'where': '1=1',
+                'outFields': '*',
+                'outSR': '4326',
+                'f': 'json',
+                'resultOffset': 0,
+                'resultRecordCount': 2000  # Maximum number of records per request
+            }
+
+            all_data = []
+
+            while True:
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    features = data.get('features', [])
+                    if not features:
+                        break
+
+                    # Normalize the JSON data
+                    df = pd.json_normalize(features)
+                    all_data.append(df)
+
+                    # Update the resultOffset for the next batch of records
+                    params['resultOffset'] += params['resultRecordCount']
+                else:
+                    print("Failed to retrieve data")
+                    break
+
+            # Concatenate all dataframes into one
+            if all_data:
+                final_df = pd.concat(all_data, ignore_index=True)
+            else:
+                print("No data retrieved")
+                return None
+
+            # Check and handle point geometries
+            if 'geometry.x' in final_df.columns and 'geometry.y' in final_df.columns:
+                final_df['geometry'] = final_df.apply(lambda x: Point(x['geometry.x'], x['geometry.y']), axis=1)
+                final_df = geo.GeoDataFrame(final_df, geometry='geometry', crs='EPSG:4326')
+
+            # Check and handle polygon geometries
+            if 'geometry.rings' in final_df.columns:
+                final_df['geometry'] = final_df['geometry.rings'].apply(lambda x: Polygon(x[0]) if x else None)
+                final_df = geo.GeoDataFrame(final_df, geometry='geometry', crs='EPSG:4326')
+
+            # Check and handle path geometries
+            if 'geometry.paths' in final_df.columns:
+                def create_linestring(paths):
+                    if isinstance(paths, list) and len(paths) > 0 and isinstance(paths[0], list):
+                        return LineString(paths[0])
+                    return None
+
+                final_df['geometry'] = final_df['geometry.paths'].apply(create_linestring)
+                final_df = geo.GeoDataFrame(final_df, geometry='geometry', crs='EPSG:4326')
+
+            return final_df
 
     class TNM():
         pass
@@ -930,6 +1596,19 @@ class Fetch(Base):
         url = 'https://github.com/movebank/movebank-api-doc/blob/master/movebank-api.md'
 
         pass
+
+    class FEC():
+
+        # ec api
+        #url = 'https://api.open.fec.gov/swagger/'
+
+        pass
+
+
+
+
+
+
 
 class Stage(Base):
     pass
