@@ -6,6 +6,7 @@ import geopandas as geo
 import pandas as pd
 import requests
 from io import StringIO
+import datetime
 from pprint import pprint
 
 class Base():
@@ -823,7 +824,106 @@ class Fetch(Base):
         pass
 
     class HistoricalTopo():
-        pass
+
+        def fetch_token(self):
+
+            client_id = '7UrLzQnmjMdiZWfk'
+            client_secret = '2259cdae159548e086140d1a7e457bff'
+            referer = 'https://xyzeus.maps.arcgis.com/'
+
+            # Step 1: Get the OAuth2 token
+            token_url = 'https://www.arcgis.com/sharing/rest/oauth2/token/'
+
+            params = {
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'grant_type': 'client_credentials',
+                'expiration': 400,  # Token validity in minutes
+                'f': 'json'
+            }
+
+            response = requests.post(token_url, data=params)
+            token_response = response.json()
+
+            if 'access_token' in token_response:
+                token = token_response['access_token']
+                print(f"Token: {token}")
+
+                # Step 2: Use the token to access the secured resource
+                service_url = 'https://historical1.arcgis.com/arcgis/rest/services/USGS_Historical_Topographic_Maps/ImageServer'
+
+                params = {
+                    'f': 'json',
+                    'token': token
+                }
+
+                response = requests.get(service_url, params=params)
+
+                if response.status_code == 200:
+                    data = response.json()
+                else:
+                    print(f"Failed to retrieve data: {response.status_code}")
+            else:
+                print(f"Failed to retrieve token: {token_response}")
+
+            return token
+        def wkt_to_bbox(self, wkt_string):
+            """Convert WKT to bounding box."""
+            geometry = loads(wkt_string)
+            bounds = geometry.bounds  # returns (minx, miny, maxx, maxy)
+            return bounds
+        def date_to_milliseconds(self, date_str):
+            """Convert a date string in the format 'YYYY-MM-DD' to milliseconds since epoch."""
+            dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+            epoch = datetime.datetime.utcfromtimestamp(0)
+            return int((dt - epoch).total_seconds() * 1000.0)
+        def topo_fetch(self, area=None, start_date=None, end_date=None):
+
+            token = self.fetch_token()
+
+            start_time = self.date_to_milliseconds(start_date)
+            end_time = self.date_to_milliseconds(end_date)
+
+            # Convert WKT to bounding box
+            bbox = self.wkt_to_bbox(area)
+            bbox_str = f"{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}"
+
+            # Step 2: Use the token to access the secured resource
+            service_url = 'https://historical1.arcgis.com/arcgis/rest/services/USGS_Historical_Topographic_Maps/ImageServer/query'
+
+            params = {
+                'where': '1=1',  # Condition to match all records
+                'geometry': bbox_str,  # Bounding box in EPSG:4326
+                'geometryType': 'esriGeometryEnvelope',  # Type of geometry
+                'inSR': '4326',  # Input spatial reference
+                'spatialRel': 'esriSpatialRelIntersects',  # Spatial relationship
+                'outFields': '*',  # Fields to return
+                'returnGeometry': 'true',  # Whether to return geometry
+                'outSR': '4326',  # Output spatial reference
+                'time': f'{start_time},{end_time}',  # Time range filter
+                'f': 'json',  # Response format
+                'token': token  # Use the provided token
+            }
+
+            response = requests.get(service_url, params=params)
+
+            if response.status_code == 200:
+                data = response.json()
+                if 'features' in data:
+                    normalized_data = pd.json_normalize(data['features'], sep='_')
+
+                    # Convert the 'geometry.rings' to a 'geometry' column directly
+                    normalized_data['geometry'] = normalized_data['geometry_rings'].apply(lambda rings: Polygon(rings[0]) if rings else None)
+                    gdf = geo.GeoDataFrame(normalized_data, geometry='geometry', crs="EPSG:4326")
+                    gdf = gdf.drop(columns=['geometry_rings'])
+
+                    return normalized_data
+                else:
+                    print("No features returned")
+            else:
+                print(f"Failed to retrieve data: {response.status_code}")
+                print(response.text)
+                return None
 
     class MoveBank():
 
