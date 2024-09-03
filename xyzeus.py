@@ -7,7 +7,10 @@ import pandas as pd
 import requests
 from io import StringIO
 import datetime
+import plotly_express as px
+import colorcet
 from pprint import pprint
+import matplotlib.pyplot as plt
 
 class Base():
     pass
@@ -159,6 +162,158 @@ class Convert(Base):
 
 class MapZeus(Base):
 
+    def map_aois(self, area=None, path=None, dataframe=None, basemap=None, centroids=False, cmap='blue'):
+
+        # this wont work yet as I need a basemap selector
+        # will map the output of an osm query... see Fetch.osm
+        # basemap options : dark, light, satellite, osm
+        # can handle points & polygons
+
+        if path:
+            file_extension = path.split('.')[-1]
+            if file_extension == 'csv':
+                df = pd.read_csv(path)
+                print(df)
+
+                if 'geometry' in df:
+                    df['geometry'] = df['geometry'].apply(lambda x: loads(x) if pd.notnull(x) else None)
+                    polygon_geo = geo.GeoDataFrame(df, geometry='geometry')
+                else:
+                    polygon_geo = geo.GeoDataFrame(df, geometry=geo.points_from_xy(df.longitude, df.latitude))
+
+            elif file_extension == 'geojson':
+                polygon_geo = geo.read_file(path)
+
+            elif file_extension.upper() == 'KML':
+                polygon_geo = geo.read_file(path, driver='KML')
+
+            polygon_geo['centroid'] = polygon_geo.geometry.centroid
+            polygon_geo['name'] = 'Area of Interest'
+
+        elif dataframe is not None:
+            if isinstance(dataframe, geo.GeoDataFrame):
+                polygon_geo = dataframe
+            else:
+                polygon_geo = geo.GeoDataFrame(dataframe, geometry='geometry')
+
+            polygon_geo['centroid'] = polygon_geo.geometry.centroid
+            polygon_geo['name'] = 'Area of Interest'
+
+        if area:
+            polygon_wkt = loads(area)
+            polygon_geos = geo.GeoSeries([polygon_wkt])
+            polygon_geo = geo.GeoDataFrame(geometry=polygon_geos)
+            polygon_geo['name'] = 'Area of Interest'
+            polygon_geo['centroid'] = polygon_geo.geometry.centroid
+
+        if basemap:
+            selected_basemap = self.basemap_selector(basemap=basemap)
+
+            fig = px.choropleth_mapbox(
+                polygon_geo,
+                geojson=polygon_geo.geometry.__geo_interface__,
+                locations=polygon_geo.index,
+                center={"lat": polygon_geo.geometry.centroid.y.values[0],
+                        "lon": polygon_geo.geometry.centroid.x.values[0]},
+                zoom=12,
+                opacity=0.3,
+                title='Area(s) of Interest',
+                height=800,
+                hover_name='name',
+                labels={'name': 'name'},
+                mapbox_style=selected_basemap['mapbox_style'],
+                color_discrete_sequence=[cmap]
+            )
+
+            fig.update_geos(fitbounds="geojson")
+
+            if basemap in ['satellite', 'hybrid', 'terrain']:
+                fig.update_layout(
+                    mapbox_layers=[selected_basemap['mapbox_layers']]
+                )
+
+        else:
+            basemap = self.basemap_selector(basemap='osm')
+
+            fig = px.choropleth_mapbox(
+                polygon_geo,
+                geojson=polygon_geo.geometry.__geo_interface__,
+                locations=polygon_geo.index,
+                center={"lat": polygon_geo.geometry.centroid.y.values[0],
+                        "lon": polygon_geo.geometry.centroid.x.values[0]},
+                zoom=12,
+                opacity=0.3,
+                title='Area(s) of Interest',
+                height=800,
+                hover_name='name',
+                labels={'name': 'name'},
+                mapbox_style=basemap['mapbox_style'],
+                color_discrete_sequence=[cmap]
+            )
+
+        fig.update_geos(fitbounds="geojson")
+
+        if centroids:
+            centroid_trace = px.scatter_mapbox(
+                polygon_geo,
+                lat=polygon_geo.geometry.centroid.y,
+                lon=polygon_geo.geometry.centroid.x
+            ).data[0]
+
+            fig.add_trace(centroid_trace)
+
+        return fig
+
+    def datashader(self):
+
+        #### this is not complete
+
+        # Read your dataset
+        bd = geo.read_file('path_to_your_building_footprints.geojson')
+
+        # Calculate centroids of the building polygons
+        bd['centroid'] = bd.geometry.centroid
+
+        # Create a new DataFrame with longitude and latitude of centroids
+        centroids = bd['centroid'].apply(lambda geom: pd.Series({'longitude': geom.x, 'latitude': geom.y}))
+
+        # Define the canvas
+        cvs = ds.Canvas(plot_width=2000, plot_height=1000)
+
+        # Aggregate the points
+        agg = cvs.points(centroids, 'longitude', 'latitude')
+
+        # Shade the aggregation
+        img = tf.shade(agg, cmap=colorcet.fire, how='log')[::-1].to_pil()
+
+        # Get the coordinates for the corners of the image
+        coords_lat, coords_lon = agg.coords['latitude'].values, agg.coords['longitude'].values
+        coordinates = [
+            [coords_lon[0], coords_lat[0]],
+            [coords_lon[-1], coords_lat[0]],
+            [coords_lon[-1], coords_lat[-1]],
+            [coords_lon[0], coords_lat[-1]]
+        ]
+
+        # Create a Plotly figure with Mapbox
+        fig = px.scatter_mapbox(lat=[coords_lat[0]], lon=[coords_lon[0]], zoom=12, height=1000)
+
+        # Add the Datashader image as a Mapbox layer image
+        fig.update_layout(
+            mapbox_style="carto-positron",
+            mapbox_layers=[
+                {
+                    "sourcetype": "image",
+                    "source": img,
+                    "coordinates": coordinates
+                }
+            ]
+        )
+
+        fig.show()
+
+        return fig
+
     def choropleth(self):
         pass
 
@@ -223,7 +378,9 @@ class AnalyzeRaster(Base):
         pass
 
 class AnalyzeLAS(Base):
-    pass
+
+    def potree(self, las_path=None):
+        pass
 
 class Fetch(Base):
 
@@ -1307,8 +1464,73 @@ class Fetch(Base):
 
             return eia_dict
 
-        def reports(self):
-            pass
+        def eia_reports(self, endpoint=None, category=None, subcategory=None, start_date=None, end_date=None, start_month=None,
+                end_month=None, start_year=None, end_year=None):
+
+            if start_year is None:
+                start_year = '2010'
+            if end_year is None:
+                end_year = '2024'
+
+            api_key = 'QsSYwcaqmRmwDP75mrjeXdwN6dm8I20UeO2OkxUe'
+            df = pd.DataFrame()  # Initialize an empty DataFrame to return if no data is fetched
+
+            if endpoint == 'coal':
+                pass
+
+            if endpoint == 'crude-oil-imports':
+                pass
+
+            if endpoint == 'electricity':
+                pass
+
+            if endpoint == 'international':
+                pass
+
+            if endpoint == 'natural-gas':
+                pass
+
+            if endpoint == 'nuclear-outages':
+                pass
+
+            if endpoint == 'petroleum':
+                pass
+
+            if endpoint == 'seds':
+
+                ### state energy data system
+
+
+                pass
+
+            if endpoint == 'steo':
+
+
+                ### short term energy outlook
+
+
+                pass
+
+            if endpoint == 'densified-biomass':
+                pass
+
+            if endpoint == 'total-energy':
+                pass
+
+            if endpoint == 'aeo':
+
+                #### annual energy outlook
+
+                pass
+
+            if endpoint == 'ieo':
+
+                ### international energy outlook
+
+                pass
+
+            if endpoint == 'co2-emissions':
+                pass
 
         def eia_geo_datasets(self):
 
@@ -1593,6 +1815,56 @@ class Fetch(Base):
     class OSM():
         pass
 
+    class OAM():
+
+        ##### open aerial map #####
+
+        def oam(self, area=None):
+
+            # Load the polygon from WKT format
+            polygon_wkt = loads(area)
+            polygon_geos = geo.GeoSeries([polygon_wkt])
+            polygon_geo = geo.GeoDataFrame(geometry=polygon_geos)
+            input_geometry = polygon_geo.geometry.iloc[0]
+
+            # Calculate the bounding box
+            minx, miny, maxx, maxy = input_geometry.bounds
+            bbox = f"{minx},{miny},{maxx},{maxy}"
+            print("Bounding box:", bbox)
+
+            # Initialize variables for pagination
+            page = 1
+            all_data = []
+
+            while True:
+                # Define the URL with the bbox parameter and pagination
+                url = f'https://api.openaerialmap.org/meta?bbox={bbox}&page={page}&limit=100'
+
+                # Send the GET request
+                response = requests.get(url)
+                if response.status_code == 200:
+                    data = response.json()
+                    results = data.get('results', [])
+
+                    if not results:  # If no results are returned, break the loop
+                        break
+
+                    all_data.extend(results)
+
+                    if len(results) < 100:  # If fewer than 100 results are returned, this is the last page
+                        break
+
+                    page += 1  # Increment the page number to get the next set of results
+
+                else:
+                    print(f"Failed to retrieve data: {response.status_code}")
+                    break
+
+            # Convert the accumulated data into a DataFrame
+            df = pd.json_normalize(all_data)
+
+            return df
+
     class GoogleFootprints():
         pass
 
@@ -1733,12 +2005,6 @@ class Fetch(Base):
     class WikiGeo():
         pass
 
-
-
-
-
-
-
 class Stage(Base):
     pass
 
@@ -1755,6 +2021,9 @@ class Export(Base):
     pass
 
 class Pipeline(Base):
+    pass
+
+class Find(Base):
     pass
 
 
