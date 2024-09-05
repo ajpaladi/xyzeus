@@ -573,7 +573,6 @@ class Fetch(Base):
 
             return enriched
 
-
         def state_dict(self):
 
             state_dict = {
@@ -622,13 +621,13 @@ class Fetch(Base):
                 "Florida": 12,
                 "District of Columbia": 11,
                 "Delaware": 10,
-                "Connecticut": 9,
-                "Colorado": 8,
-                "California": 6,
-                "Arkansas": 5,
-                "Arizona": 4,
-                "Alaska": 2,
-                "Alabama": 1
+                "Connecticut": '09',
+                "Colorado": '08',
+                "California": '06',
+                "Arkansas": '05',
+                "Arizona": '04',
+                "Alaska": '02',
+                "Alabama": '01'
             }
 
             return state_dict
@@ -1464,8 +1463,7 @@ class Fetch(Base):
 
             return eia_dict
 
-        def eia_reports(self, endpoint=None, category=None, subcategory=None, start_date=None, end_date=None, start_month=None,
-                end_month=None, start_year=None, end_year=None):
+        def eia_reports(self, endpoint=None, category=None, subcategory=None, start_date=None, end_date=None, start_month=None, end_month=None, start_year=None, end_year=None):
 
             if start_year is None:
                 start_year = '2010'
@@ -1476,61 +1474,49 @@ class Fetch(Base):
             df = pd.DataFrame()  # Initialize an empty DataFrame to return if no data is fetched
 
             if endpoint == 'coal':
-                pass
+                base_url = 'https://api.eia.gov/v2/coal/'
 
             if endpoint == 'crude-oil-imports':
-                pass
+                base_url = 'https://api.eia.gov/v2/crude-oil-imports/'
 
             if endpoint == 'electricity':
-                pass
+                base_url = 'https://api.eia.gov/v2/electricity/'
 
             if endpoint == 'international':
-                pass
+                base_url = 'https://api.eia.gov/v2/international/'
 
             if endpoint == 'natural-gas':
-                pass
+                base_url = 'https://api.eia.gov/v2/natural-gas/'
 
             if endpoint == 'nuclear-outages':
-                pass
+                base_url = 'https://api.eia.gov/v2/natural-gas/'
 
             if endpoint == 'petroleum':
-                pass
+                base_url = 'https://api.eia.gov/v2/nuclear-outages/'
 
             if endpoint == 'seds':
-
                 ### state energy data system
-
-
-                pass
+                base_url = 'https://api.eia.gov/v2/seds/'
 
             if endpoint == 'steo':
-
-
                 ### short term energy outlook
-
-
-                pass
+                base_url = 'https://api.eia.gov/v2/steo/'
 
             if endpoint == 'densified-biomass':
-                pass
+                base_url = 'https://api.eia.gov/v2/densified-biomass/'
 
             if endpoint == 'total-energy':
-                pass
+                base_url = 'https://api.eia.gov/v2/total-energy/'
 
             if endpoint == 'aeo':
-
                 #### annual energy outlook
-
-                pass
+                base_url = 'https://api.eia.gov/v2/aeo/'
 
             if endpoint == 'ieo':
-
-                ### international energy outlook
-
-                pass
+                base_url = 'https://api.eia.gov/v2/ieo/'
 
             if endpoint == 'co2-emissions':
-                pass
+                base_url = 'https://api.eia.gov/v2/co2-emissions/'
 
         def eia_geo_datasets(self):
 
@@ -1785,7 +1771,7 @@ class Fetch(Base):
             if response.status_code == 200:
                 data = response.json()
                 for item_assets in data['item_assets']:
-                    if item_assets not in ['thumbnail', 'metadata']:
+                    if item_assets not in ['thumbnail', 'metadata', 'hh', 'hv', 'schema-noise-hh', 'schema-noise-hv', 'schema-product-hh','schema-product-hv','schema-product-vh','schema-product-vv','schema-calibration-hh','schema-calibration-hv','schema-calibration-vh','schema-calibration-vv']:
                         asset_list.append(item_assets)
 
 
