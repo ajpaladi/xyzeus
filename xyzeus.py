@@ -1475,48 +1475,499 @@ class Fetch(Base):
 
             if endpoint == 'coal':
                 base_url = 'https://api.eia.gov/v2/coal/'
+                if category == 'shipments':
+                    if subcategory == 'mined-state-aggregates':
+                        pass
+                    elif subcategory == 'receipts':
+                        pass
+                    elif subcategory == 'mine-aggregates':
+                        pass
+                    elif subcategory == 'plant-state-aggregates':
+                        pass
+                    elif category == 'plant-aggregates':
+                        pass
+                    elif category == 'by-mine-by-plant':
+                        pass
+                elif category == 'consumption-and-quality':
+                    pass
+                elif category == 'aggregate-production':
+                    pass
+                elif category == 'exports-import-quantity-price':
+                    pass
+                elif category == 'market-sales-price':
+                    pass
+                elif category == 'mine-production':
+                    pass
+                elif category == 'price-by-rank':
+                    pass
 
-            if endpoint == 'crude-oil-imports':
+            elif endpoint == 'crude-oil-imports':
+                ###########
                 base_url = 'https://api.eia.gov/v2/crude-oil-imports/'
 
-            if endpoint == 'electricity':
+            elif endpoint == 'electricity':
                 base_url = 'https://api.eia.gov/v2/electricity/'
+                if category == 'retail-sales':
+                    pass
+                elif category == 'electric-power-operational-data':
+                    pass
+                elif category == 'rto':
+                    if subcategory == 'region-data':
+                        pass
+                    elif subcategory == 'fuel-type-data':
+                        pass
+                    elif subcategory == 'region-sub-ba-data':
+                        pass
+                    elif subcategory == 'interchange-data':
+                        pass
+                    elif subcategory == 'daily-region-data':
+                        pass
+                    elif subcategory == 'daily-region-sub-ba-data':
+                        pass
+                    elif subcategory == 'daily-fuel-type-data':
+                        pass
+                    elif subcategory == 'daily-interchange-data':
+                        pass
+                elif category == 'state-electricity-profiles':
+                    if subcategory == 'emissions-by-state-by-fuel':
+                        pass
+                    elif subcategory == 'source-disposition':
+                        pass
+                    elif subcategory == 'capability':
+                        pass
+                    elif subcategory == 'energy-efficiency':
+                        pass
+                    elif subcategory == 'net-metering':
+                        pass
+                    elif subcategory == 'meters':
+                        pass
+                    elif subcategory == 'summary':
+                        pass
+                elif category == 'operating-generator-capacity':
+                    pass
+                elif category == 'facility-fuel':
+                    pass
 
-            if endpoint == 'international':
+            elif endpoint == 'international':
+                ##########
                 base_url = 'https://api.eia.gov/v2/international/'
 
-            if endpoint == 'natural-gas':
+            elif endpoint == 'natural-gas':
                 base_url = 'https://api.eia.gov/v2/natural-gas/'
 
-            if endpoint == 'nuclear-outages':
+                if category == 'sum':
+                    if subcategory == 'snd':
+                        pass
+                    elif subcategory == 'lsum':
+                        pass
+                    elif subcategory == 'sndm':
+                        pass
+
+                elif category == 'pri':
+                    if subcategory == 'sum':
+                        pass
+                    elif subcategory == 'fut':
+                        pass
+                    elif subcategory == 'rescom':
+                        pass
+
+                elif category == 'enr':
+                    if subcategory == 'sum':
+                        pass
+                    elif subcategory == 'cplc':
+                        pass
+                    elif subcategory == 'dry':
+                        pass
+                    elif subcategory == 'wals':
+                        pass
+                    elif subcategory == 'nang':
+                        pass
+                    elif subcategory == 'adng':
+                        pass
+                    elif subcategory == 'ngl':
+                        pass
+                    elif subcategory == 'ngpl':
+                        pass
+                    elif subcategory == 'lc':
+                        pass
+                    elif subcategory == 'coalbed':
+                        pass
+                    elif subcategory == 'shalegas':
+                        pass
+                    elif subcategory == 'deep':
+                        pass
+                    elif subcategory == 'nprod':
+                        pass
+                    elif subcategory == 'drill':
+                        pass
+                    elif subcategory == 'wellend':
+                        pass
+                    elif subcategory == 'seis':
+                        pass
+                    elif subcategory == 'wellfoot':
+                        pass
+                    elif subcategory == 'welldep':
+                        pass
+                    elif subcategory == 'wellcost':
+                        pass
+
+                elif category == 'prod':
+                    if subcategory == 'oilwells':
+                        pass
+                    elif subcategory == 'sum':
+                        pass
+                    elif subcategory == 'whv':
+                        pass
+                    elif subcategory == 'off':
+                        pass
+                    elif subcategory == 'deep':
+                        pass
+                    elif subcategory == 'ngpl':
+                        pass
+                    elif subcategory == 'lc':
+                        pass
+                    elif subcategory == 'coalbed':
+                        pass
+                    elif subcategory == 'shalegas':
+                        pass
+                    elif subcategory == 'ss':
+                        pass
+                    elif subcategory == 'wells':
+                        pass
+                    elif subcategory == 'pp':
+                        pass
+
+                elif category == 'move':
+                    if subcategory == 'impc':
+                        pass
+                    elif subcategory == 'expc':
+                        pass
+                    elif subcategory == 'state':
+                        pass
+                    elif subcategory == 'poe1':
+                        pass
+                    elif subcategory == 'poe2':
+                        pass
+                    elif subcategory == 'ist':
+                        pass
+
+                elif category == 'stor':
+                    if subcategory == 'wkly':
+                        pass
+                    elif subcategory == 'sum':
+                        pass
+                    elif subcategory == 'type':
+                        pass
+                    elif subcategory == 'lng':
+                        pass
+                    elif subcategory == 'cap':
+                        pass
+
+                elif category == 'cone':
+                    if subcategory == 'sum':
+                        pass
+                    elif subcategory == 'num':
+                        pass
+                    elif subcategory == 'pns':
+                        pass
+                    elif subcategory == 'acct':
+                        pass
+                    elif subcategory == 'heat':
+                        pass
+
+            elif endpoint == 'nuclear-outages':
                 base_url = 'https://api.eia.gov/v2/natural-gas/'
 
-            if endpoint == 'petroleum':
+                if category == 'us-nuclear-outages':
+                    pass
+                elif category == 'generator-nuclear-outages':
+                    pass
+                elif category == 'facility-nuclear-outages':
+                    pass
+
+            elif endpoint == 'petroleum':
                 base_url = 'https://api.eia.gov/v2/nuclear-outages/'
+                if category == 'sum':
+                    if subcategory == 'b100':
+                        pass
+                    elif subcategory == 'snd':
+                        pass
+                    elif subcategory == 'sndw':
+                        pass
+                    elif subcategory == 'crdsnd':
+                        pass
+                    elif subcategory == 'mkt':
+                        pass
 
-            if endpoint == 'seds':
+                elif category == 'pri':
+                    if subcategory == 'gnd':
+                        pass
+                    elif subcategory == 'spt':
+                        pass
+                    elif subcategory == 'fut':
+                        pass
+                    elif subcategory == 'wfr':
+                        pass
+                    elif subcategory == 'refmg':
+                        pass
+                    elif subcategory == 'refmg2':
+                        pass
+                    elif subcategory == 'refoth':
+                        pass
+                    elif subcategory == 'allmg':
+                        pass
+                    elif subcategory == 'dist':
+                        pass
+                    elif subcategory == 'prop':
+                        pass
+                    elif subcategory == 'resid':
+                        pass
+                    elif subcategory == 'dfp1':
+                        pass
+                    elif subcategory == 'dfp2':
+                        pass
+                    elif subcategory == 'dfp3':
+                        pass
+                    elif subcategory == 'rac2':
+                        pass
+                    elif subcategory == 'imc1':
+                        pass
+                    elif subcategory == 'imc2':
+                        pass
+                    elif subcategory == 'imc3':
+                        pass
+                    elif subcategory == 'land1':
+                        pass
+                    elif subcategory == 'land2':
+                        pass
+                    elif subcategory == 'land3':
+                        pass
+                    elif subcategory == 'ipct':
+                        pass
+
+                elif category == 'crd':
+
+                    if subcategory == 'pres':
+                        pass
+                    elif subcategory == 'cplc':
+                        pass
+                    elif subcategory == 'nprod':
+                        pass
+                    elif subcategory == 'crpdn':
+                        pass
+                    elif subcategory == 'api':
+                        pass
+                    elif subcategory == 'gom':
+                        pass
+                    elif subcategory == 'drill':
+                        pass
+                    elif subcategory == 'wellend':
+                        pass
+                    elif subcategory == 'seis':
+                        pass
+                    elif subcategory == 'wellfoot':
+                        pass
+                    elif subcategory == 'welldep':
+                        pass
+                    elif subcategory == 'wellcost':
+                        pass
+
+                elif category == 'pnp':
+                    if subcategory == 'wiup':
+                        pass
+                    elif subcategory == 'wprodrb':
+                        pass
+                    elif subcategory == 'wprodr':
+                        pass
+                    elif subcategory == 'wprodb':
+                        pass
+                    elif subcategory == 'wprode':
+                        pass
+                    elif subcategory == 'inpt':
+                        pass
+                    elif subcategory == 'inpt2':
+                        pass
+                    elif subcategory == 'inpt3':
+                        pass
+                    elif subcategory == 'refp':
+                        pass
+                    elif subcategory == 'refp2':
+                        pass
+                    elif subcategory == 'refp3':
+                        pass
+                    elif subcategory == 'oxy':
+                        pass
+                    elif subcategory == 'capbio':
+                        pass
+                    elif subcategory == 'unc':
+                        pass
+                    elif subcategory == 'crq':
+                        pass
+                    elif subcategory == 'dwns':
+                        pass
+                    elif subcategory == 'pct':
+                        pass
+                    elif subcategory == 'cap1':
+                        pass
+                    elif subcategory == 'capchg':
+                        pass
+                    elif subcategory == 'capprod':
+                        pass
+                    elif subcategory == 'capfuel':
+                        pass
+                    elif subcategory == 'feedng':
+                        pass
+                    elif subcategory == 'capwork':
+                        pass
+                    elif subcategory == 'capshell':
+                        pass
+                    elif subcategory == 'caprec':
+                        pass
+                    elif subcategory == 'bioplfuel':
+                        pass
+                    elif subcategory == 'gp':
+                        pass
+
+                elif category == 'move':
+                    if subcategory == 'expcp':
+                        pass
+                    elif subcategory == 'wkly':
+                        pass
+                    elif subcategory == 'wimpc':
+                        pass
+                    elif subcategory == 'imp':
+                        pass
+                    elif subcategory == 'imp2':
+                        pass
+                    elif subcategory == 'res':
+                        pass
+                    elif subcategory == 'exp':
+                        pass
+                    elif subcategory == 'expc':
+                        pass
+                    elif subcategory == 'neti':
+                        pass
+                    elif subcategory == 'imc1':
+                        pass
+                    elif subcategory == 'imc2':
+                        pass
+                    elif subcategory == 'imc3':
+                        pass
+                    elif subcategory == 'land1':
+                        pass
+                    elif subcategory == 'land2':
+                        pass
+                    elif subcategory == 'land3':
+                        pass
+                    elif subcategory == 'ipct':
+                        pass
+                    elif subcategory == 'ptb':
+                        pass
+                    elif subcategory == 'pipe':
+                        pass
+                    elif subcategory == 'tb':
+                        pass
+                    elif subcategory == 'netr':
+                        pass
+                    elif subcategory == 'impcus':
+                        pass
+                    elif subcategory == 'impcp':
+                        pass
+                    elif subcategory == 'rail':
+                        pass
+                    elif subcategory == 'railNA':
+                        pass
+
+                elif category == 'stoc':
+                    if subcategory == 'ts':
+                        pass
+                    elif subcategory == 'wstk':
+                        pass
+                    elif subcategory == 'typ':
+                        pass
+                    elif subcategory == 'st':
+                        pass
+                    elif subcategory == 'cu':
+                        pass
+                    elif subcategory == 'ref':
+                        pass
+                    elif subcategory == 'gp':
+                        pass
+
+                elif category == 'cons':
+                    if subcategory == 'wpsup':
+                        pass
+                    elif subcategory == 'psup':
+                        pass
+                    elif subcategory == 'prim':
+                        pass
+                    elif subcategory == 'refmg':
+                        pass
+                    elif subcategory == 'refoth':
+                        pass
+                    elif subcategory == 'refres':
+                        pass
+                    elif subcategory == '821dst':
+                        pass
+                    elif subcategory == '821dsta':
+                        pass
+                    elif subcategory == '821rsd':
+                        pass
+                    elif subcategory == '821rsda':
+                        pass
+                    elif subcategory == '821ker':
+                        pass
+                    elif subcategory == '821kera':
+                        pass
+                    elif subcategory == '821use':
+                        pass
+                    elif subcategory == '821usea':
+                        pass
+
+            elif endpoint == 'seds':
                 ### state energy data system
                 base_url = 'https://api.eia.gov/v2/seds/'
 
-            if endpoint == 'steo':
+            elif endpoint == 'steo':
                 ### short term energy outlook
                 base_url = 'https://api.eia.gov/v2/steo/'
 
-            if endpoint == 'densified-biomass':
+            elif endpoint == 'densified-biomass':
                 base_url = 'https://api.eia.gov/v2/densified-biomass/'
+                if category == 'capacity-by-region':
+                    pass
+                elif category == 'sales-and-price-by-region':
+                    pass
+                elif category == 'export-sales-and-price':
+                    pass
+                elif category == 'feedstocks-and-cost':
+                    pass
+                elif category == 'production-by-region':
+                    pass
+                elif category == 'characteristics-by-region':
+                    pass
+                elif category == 'inventories-by-region':
+                    pass
+                elif category == 'wood-pellet-plants':
+                    pass
 
-            if endpoint == 'total-energy':
+            elif endpoint == 'total-energy':
                 base_url = 'https://api.eia.gov/v2/total-energy/'
 
-            if endpoint == 'aeo':
+            elif endpoint == 'aeo':
                 #### annual energy outlook
                 base_url = 'https://api.eia.gov/v2/aeo/'
 
-            if endpoint == 'ieo':
+            elif endpoint == 'ieo':
+                #######
                 base_url = 'https://api.eia.gov/v2/ieo/'
 
-            if endpoint == 'co2-emissions':
+            elif endpoint == 'co2-emissions':
                 base_url = 'https://api.eia.gov/v2/co2-emissions/'
+                if category == 'co2-emissions-aggregates':
+                    pass
+                elif category == 'co2-emissions-and-carbon-coefficients':
+                    pass
 
         def eia_geo_datasets(self):
 
@@ -1991,6 +2442,345 @@ class Fetch(Base):
     class WikiGeo():
         pass
 
+    class Crime():
+
+        #### hitting the FBI crime api
+
+        pass
+
+    class CDC():
+
+        #### opendata api
+        #### wonder api
+
+        def datasets(self):
+            pass
+
+        def county_air_quality(self):
+
+            # Base URL for the API
+            url = 'https://data.cdc.gov/resource/cjae-szjv.json'
+
+            # Parameters to handle pagination
+            limit = 1000  # Number of records to fetch per request
+            offset = 0  # Start with an offset of 0
+            all_data = []  # To store all data across pages
+
+            while True:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    if not data:
+                        break
+                    all_data.extend(data)
+                    offset += limit
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
+        def covid_deaths(self):
+
+            # Base URL for the API
+            url = 'https://data.cdc.gov/resource/9bhg-hcku.json'
+
+            # Parameters to handle pagination
+            limit = 1000  # Number of records to fetch per request
+            offset = 0  # Start with an offset of 0
+            all_data = []  # To store all data across pages
+
+            while True:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    if not data:
+                        break
+                    all_data.extend(data)
+                    offset += limit
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
+        def covid_cases(self, max_records=None):
+
+            if not max_records:
+                max_records = 1000000
+
+            if max_records > 1000000:
+                raise ValueError("max_records cannot exceed 1,000,000 at a time.")
+
+            # Base URL for the API
+            url = 'https://data.cdc.gov/resource/vbim-akqf.json'
+
+            # Parameters to handle pagination
+            limit = 1000
+            offset = 0
+            all_data = []
+            max_records = max_records
+            total_records = 0
+
+            while total_records < max_records:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+
+                    if not data:
+                        break
+
+                    all_data.extend(data)
+                    total_records += len(data)
+                    offset += limit
+                    if total_records >= max_records:
+                        print(f"Reached the limit of {max_records} records.")
+                        break
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
+        def covid_cases_geo(self, max_records=None):
+
+            # Base URL for the API
+            url = 'https://data.cdc.gov/resource/n8mc-b4w4.json'
+
+            if not max_records:
+                max_records = 1000000
+
+            if max_records > 1000000:
+                raise ValueError("max_records cannot exceed 1,000,000 at a time.")
+
+            # Parameters to handle pagination
+            limit = 1000  # Number of records to fetch per request
+            offset = 0  # Start with an offset of 0
+            all_data = []  # To store all data across pages
+            max_records = max_records
+            total_records = 0
+
+            while True:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+
+                    if not data:
+                        break
+
+                    all_data.extend(data)
+                    total_records += len(data)
+                    offset += limit
+                    if total_records >= max_records:
+                        print(f"Reached the limit of {max_records} records.")
+                        break
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
+        def covid_wastewater(self):
+
+            # Base URL for the API
+            url = 'https://data.cdc.gov/resource/2ew6-ywp6.json'
+
+            # Parameters to handle pagination
+            limit = 1000  # Number of records to fetch per request
+            offset = 0  # Start with an offset of 0
+            all_data = []  # To store all data across pages
+
+            while True:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    if not data:
+                        break
+                    all_data.extend(data)
+                    offset += limit
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
+        def state_disability_stats(self):
+
+            # Base URL for the API
+            url = 'https://data.cdc.gov/resource/s2qv-b27b.json'
+
+            # Parameters to handle pagination
+            limit = 1000  # Number of records to fetch per request
+            offset = 0  # Start with an offset of 0
+            all_data = []  # To store all data across pages
+
+            while True:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    if not data:
+                        break
+                    all_data.extend(data)
+                    offset += limit
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
+        def flu_vaccination_locations(self):
+
+            # Base URL for the API
+            url = 'https://data.cdc.gov/resource/bugr-bbfr.json'
+
+            # Parameters to handle pagination
+            limit = 1000  # Number of records to fetch per request
+            offset = 0  # Start with an offset of 0
+            all_data = []  # To store all data across pages
+
+            while True:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    if not data:
+                        break
+                    all_data.extend(data)
+                    offset += limit
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
+        def infant_mortality(self):
+
+            url = 'https://data.cdc.gov/resource/pjb2-jvdr.json'
+
+            # Parameters to handle pagination
+            limit = 1000  # Number of records to fetch per request
+            offset = 0  # Start with an offset of 0
+            all_data = []  # To store all data across pages
+
+            while True:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    if not data:
+                        break
+                    all_data.extend(data)
+                    offset += limit
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
+        def adult_heath_summary(self):
+
+            url = 'https://data.cdc.gov/resource/pg2r-sfcx.json'
+
+            # Parameters to handle pagination
+            limit = 1000  # Number of records to fetch per request
+            offset = 0  # Start with an offset of 0
+            all_data = []  # To store all data across pages
+
+            while True:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    if not data:
+                        break
+                    all_data.extend(data)
+                    offset += limit
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
+        def children_health_summary(self):
+
+            url = 'https://data.cdc.gov/resource/b5qi-b3hv.json'
+
+            # Parameters to handle pagination
+            limit = 1000  # Number of records to fetch per request
+            offset = 0  # Start with an offset of 0
+            all_data = []  # To store all data across pages
+
+            while True:
+                params = {
+                    '$limit': limit,
+                    '$offset': offset
+                }
+
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    if not data:
+                        break
+                    all_data.extend(data)
+                    offset += limit
+                else:
+                    print(f"Error fetching data: {response.status_code}")
+                    break
+
+            df = pd.json_normalize(all_data)
+            return df
+
 class Stage(Base):
     pass
 
@@ -2012,4 +2802,7 @@ class Pipeline(Base):
 class Find(Base):
     pass
 
+class Dashboard(Base):
 
+    # use xyzeus components to build streamlit dashboard given an input data source or sata sources
+    pass
