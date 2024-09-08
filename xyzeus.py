@@ -162,6 +162,55 @@ class Convert(Base):
 
 class MapZeus(Base):
 
+    def basemap_selector(self, basemap=None):
+
+        basemaps = {
+            'dark': {
+                'mapbox_style': 'carto-darkmatter'
+            },
+            'light': {
+                'mapbox_style': 'carto-positron'
+            },
+            'satellite': {
+                'mapbox_style': 'carto-positron',
+                'mapbox_layers': {
+                    "below": 'traces',
+                    "sourcetype": "raster",
+                    "sourceattribution": "Google Maps",
+                    "source": [
+                        "http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}"
+                    ]
+                }
+            },
+            'hybrid': {
+                'mapbox_style': 'carto-positron',
+                'mapbox_layers': {
+                    "below": 'traces',
+                    "sourcetype": "raster",
+                    "sourceattribution": "Google Maps",
+                    "source": [
+                        "http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}"
+                    ]
+                }
+            },
+            'terrain': {
+                'mapbox_style': 'carto-positron',
+                'mapbox_layers': {
+                    "below": 'traces',
+                    "sourcetype": "raster",
+                    "sourceattribution": "Google Maps",
+                    "source": [
+                        "http://mt0.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}"
+                    ]
+                }
+            },
+            'osm': {
+                'mapbox_style': 'open-street-map'
+            }
+        }
+
+        return basemaps[basemap]
+
     def map_aois(self, area=None, path=None, dataframe=None, basemap=None, centroids=False, cmap='blue'):
 
         # this wont work yet as I need a basemap selector
