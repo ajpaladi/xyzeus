@@ -1511,41 +1511,41 @@ class Fetch(Base):
             elif endpoint == 'electricity':
                 base_url = 'https://api.eia.gov/v2/electricity/'
                 if category == 'retail-sales':
-                    pass
+                    url = base_url + category + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=customers&data[1]=price&data[2]=revenue&data[3]=sales&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc'
                 elif category == 'electric-power-operational-data':
-                    pass
+                    url = base_url + category + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=ash-content&data[1]=consumption-for-eg&data[2]=consumption-for-eg-btu&data[3]=consumption-uto&data[4]=consumption-uto-btu&data[5]=cost&data[6]=cost-per-btu&data[7]=generation&data[8]=heat-content&data[9]=receipts&data[10]=receipts-btu&data[11]=stocks&data[12]=sulfur-content&data[13]=total-consumption&data[14]=total-consumption-btu&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                 elif category == 'rto':
                     if subcategory == 'region-data':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=value&start={start_date}T00&end={end_date}T00&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'fuel-type-data':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=value&start={start_date}T00&end={end_date}T00&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'region-sub-ba-data':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=value&start={start_date}T00&end={start_date}T00&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'interchange-data':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=value&start={start_date}T00&end={start_date}T00&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'daily-region-data':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=value&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'daily-region-sub-ba-data':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=value&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'daily-fuel-type-data':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=value&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'daily-interchange-data':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=value&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                 elif category == 'state-electricity-profiles':
                     if subcategory == 'emissions-by-state-by-fuel':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=co2-rate-lbs-mwh&data[1]=co2-thousand-metric-tons&data[2]=nox-rate-lbs-mwh&data[3]=nox-short-tons&data[4]=so2-rate-lbs-mwh&data[5]=so2-short-tons&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'source-disposition':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=combined-heat-and-pwr-comm&data[1]=combined-heat-and-pwr-elect&data[2]=combined-heat-and-pwr-indust&data[3]=direct-use&data[4]=elect-pwr-sector-gen-subtotal&data[5]=electric-utilities&data[6]=energy-only-providers&data[7]=estimated-losses&data[8]=facility-direct&data[9]=full-service-providers&data[10]=independent-power-producers&data[11]=indust-and-comm-gen-subtotal&data[12]=net-interstate-trade&data[13]=net-trade-index&data[14]=total-disposition&data[15]=total-elect-indust&data[16]=total-international-exports&data[17]=total-international-imports&data[18]=total-net-generation&data[19]=total-supply&data[20]=unaccounted&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'capability':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=capability&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'energy-efficiency':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=all-other-costs&data[1]=customer-incentive&data[2]=energy-savings&data[3]=potential-peak-savings&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'net-metering':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=capacity&data[1]=customers&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'meters':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=meters&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                     elif subcategory == 'summary':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=average-retail-price&data[1]=average-retail-price-rank&data[2]=capacity-elec-utilities&data[3]=capacity-elect-utilities-rank&data[4]=capacity-ipp&data[5]=capacity-ipp-rank&data[6]=carbon-dioxide&data[7]=carbon-dioxide-lbs&data[8]=carbon-dioxide-rank&data[9]=carbon-dioxide-rank-lbs&data[10]=direct-use&data[11]=direct-use-rank&data[12]=eop-sales&data[13]=eop-sales-rank&data[14]=fsp-sales-rank&data[15]=fsp-service-provider-sales&data[16]=generation-elect-utils&data[17]=generation-elect-utils-rank&data[18]=generation-ipp&data[19]=generation-ipp-rank&data[20]=net-generation&data[21]=net-generation-rank&data[22]=net-summer-capacity&data[23]=net-summer-capacity-rank&data[24]=nitrogen-oxide&data[25]=nitrogen-oxide-lbs&data[26]=nitrogen-oxide-rank&data[27]=nitrogen-oxide-rank-lbs&data[28]=prime-source&data[29]=sulfer-dioxide&data[30]=sulfer-dioxide-lbs&data[31]=sulfer-dioxide-rank&data[32]=sulfer-dioxide-rank-lbs&data[33]=total-retail-sales&data[34]=total-retail-sales-rank&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                 elif category == 'operating-generator-capacity':
                     pass
                 elif category == 'facility-fuel':
