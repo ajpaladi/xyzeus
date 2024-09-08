@@ -1463,11 +1463,11 @@ class Fetch(Base):
 
             return eia_dict
 
-        def eia_reports(self, endpoint=None, category=None, subcategory=None, start_date=None, end_date=None, start_month=None, end_month=None, start_year=None, end_year=None):
+        def eia_reports(self, frequency, endpoint=None, category=None, subcategory=None, start_date=None, end_date=None):
 
-            if start_year is None:
+            if start_date is None:
                 start_year = '2010'
-            if end_year is None:
+            if end_date is None:
                 end_year = '2024'
 
             api_key = 'QsSYwcaqmRmwDP75mrjeXdwN6dm8I20UeO2OkxUe'
@@ -1476,34 +1476,37 @@ class Fetch(Base):
             if endpoint == 'coal':
                 base_url = 'https://api.eia.gov/v2/coal/'
                 if category == 'shipments':
-                    if subcategory == 'mined-state-aggregates':
-                        pass
+                    if subcategory == 'mine-state-aggregates':
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=ash-content&data[1]=heat-content&data[2]=price&data[3]=quantity&data[4]=sulfur-content&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc'
                     elif subcategory == 'receipts':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=ash-content&data[1]=heat-content&data[2]=price&data[3]=quantity&data[4]=sulfur-content&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc'
                     elif subcategory == 'mine-aggregates':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=ash-content&data[1]=heat-content&data[2]=price&data[3]=quantity&data[4]=sulfur-content&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc'
                     elif subcategory == 'plant-state-aggregates':
-                        pass
-                    elif category == 'plant-aggregates':
-                        pass
-                    elif category == 'by-mine-by-plant':
-                        pass
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=ash-content&data[1]=heat-content&data[2]=price&data[3]=quantity&data[4]=sulfur-content&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc'
+                    elif subcategory == 'plant-aggregates':
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=ash-content&data[1]=heat-content&data[2]=price&data[3]=quantity&data[4]=sulfur-content&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc'
+                    elif subcategory == 'by-mine-by-plant':
+                        url = base_url + category + '/' + subcategory + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=ash-content&data[1]=heat-content&data[2]=price&data[3]=quantity&data[4]=sulfur-content&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc'
                 elif category == 'consumption-and-quality':
-                    pass
+                    url = base_url + category + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=ash-content&data[1]=consumption&data[2]=heat-content&data[3]=price&data[4]=receipts&data[5]=stocks&data[6]=sulfur-content&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                 elif category == 'aggregate-production':
-                    pass
-                elif category == 'exports-import-quantity-price':
-                    pass
+                    url = base_url + category + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=average-employees&data[1]=labor-hours&data[2]=number-of-mines&data[3]=production&data[4]=productivity&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
+                elif category == 'exports-imports-quantity-price':
+                    url = base_url + category + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=price&data[1]=quantity&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                 elif category == 'market-sales-price':
-                    pass
+                    url = base_url + category + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=price&data[1]=sales&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                 elif category == 'mine-production':
-                    pass
+                    url = base_url + category + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=average-employees&data[1]=labor-hours&data[2]=latitude&data[3]=longitude&data[4]=operating-company&data[5]=operating-company-address&data[6]=production&data[7]=refuse-flag&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
                 elif category == 'price-by-rank':
-                    pass
+                    url = base_url + category + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=price&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
+                elif category == 'reserves-capacity':
+                    url = base_url + category + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=producer-distributor-stocks&data[1]=productive-capacity&data[2]=recoverable-reserves&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
 
             elif endpoint == 'crude-oil-imports':
                 ###########
                 base_url = 'https://api.eia.gov/v2/crude-oil-imports/'
+                url = base_url + '/data/?' + f'api_key={api_key}' + f'&frequency={frequency}' + f'&data[0]=quantity&start={start_date}&end={end_date}&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=5000'
 
             elif endpoint == 'electricity':
                 base_url = 'https://api.eia.gov/v2/electricity/'
@@ -1968,6 +1971,16 @@ class Fetch(Base):
                     pass
                 elif category == 'co2-emissions-and-carbon-coefficients':
                     pass
+
+            print(url)
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json().get('response', {}).get('data', [])
+                df = pd.json_normalize(data)
+                return df
+            else:
+                print(f"Error: {response.status_code}")
+                return None
 
         def eia_geo_datasets(self):
 
