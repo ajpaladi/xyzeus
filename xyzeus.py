@@ -423,7 +423,10 @@ class AnalyzeRaster(Base):
     def contour(self):
         pass
 
-    def slope_analysis(self):
+    def slope(self):
+        pass
+
+    def mosaic(self, input_rasters=None):
         pass
 
 class AnalyzeLAS(Base):
@@ -2284,7 +2287,10 @@ class Fetch(Base):
             if response.status_code == 200:
                 data = response.json()
                 for item_assets in data['item_assets']:
-                    if item_assets not in ['thumbnail', 'metadata', 'hh', 'hv', 'schema-noise-hh', 'schema-noise-hv', 'schema-product-hh','schema-product-hv','schema-product-vh','schema-product-vv','schema-calibration-hh','schema-calibration-hv','schema-calibration-vh','schema-calibration-vv']:
+                    if item_assets not in ['thumbnail', 'metadata', 'hh', 'hv', 'schema-noise-hh', 'schema-noise-hv',
+                                           'schema-product-hh','schema-product-hv','schema-product-vh','schema-product-vv',
+                                           'schema-calibration-hh','schema-calibration-hv','schema-calibration-vh','schema-calibration-vv',
+                                           'preview']:
                         asset_list.append(item_assets)
 
 
