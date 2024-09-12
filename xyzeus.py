@@ -429,6 +429,9 @@ class AnalyzeRaster(Base):
     def mosaic(self, input_rasters=None):
         pass
 
+    def timeseries(self):
+        pass
+
 class AnalyzeLAS(Base):
 
     def potree(self, las_path=None):
@@ -2505,6 +2508,9 @@ class Fetch(Base):
         # ec api
         #url = 'https://api.open.fec.gov/swagger/'
 
+        pass
+
+    class EuroStat():
         pass
 
     class WikiGeo():
