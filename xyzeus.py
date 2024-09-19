@@ -1,6 +1,6 @@
 import os
 import subprocess
-from shapely.geometry import box, LineString, Polygon, Point
+from shapely.geometry import box, LineString, Polygon, Point, MultiPolygon
 from shapely.wkt import loads
 import geopandas as geo
 import pandas as pd
@@ -429,6 +429,9 @@ class AnalyzeRaster(Base):
     def mosaic(self, input_rasters=None):
         pass
 
+    def timeseries(self):
+        pass
+
 class AnalyzeLAS(Base):
 
     def potree(self, las_path=None):
@@ -778,6 +781,8 @@ class Fetch(Base):
             df['geometry'] = df['geometry.rings'].apply(lambda x: Polygon(x[0]) if x else None)
             gdf = geo.GeoDataFrame(df, geometry='geometry', crs='EPSG:3857')
             gdf = gdf.to_crs('EPSG:4326')
+
+            return gdf
 
         def counties(self, state=None):
 
@@ -2507,6 +2512,423 @@ class Fetch(Base):
 
         pass
 
+    class EuroStat():
+
+        def nuts_boundaries(self, year=None, level=None):
+
+            if level:
+                url = f'https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_01M_2021_4326_LEVL_{level}.geojson'
+            else:
+                url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_01M_2021_4326.geojson"
+
+            print(url)
+
+            # Send a GET request to download the file
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+                def convert_to_geometry(geometry_type, coordinates):
+                    if geometry_type == 'Polygon':
+                        # Convert the coordinates to Polygon
+                        return Polygon(coordinates[0])  # Use the first set of coordinates for a simple Polygon
+                    elif geometry_type == 'MultiPolygon':
+                        # Convert the coordinates to MultiPolygon
+                        return MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+                    else:
+                        return None
+
+                df['geometry'] = df.apply(
+                    lambda row: convert_to_geometry(row['geometry.type'], row['geometry.coordinates']), axis=1)
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+                return gdf
+
+        def nuts_centroids(self, year=None):
+
+            url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_LB_2024_4326.geojson"
+
+            # Send a GET request to download the file
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+                def convert_to_point(geometry_type, coordinates):
+                    if geometry_type == 'Point':
+                        return Point(coordinates)
+                    else:
+                        return None
+
+                df['geometry'] = df.apply(
+                    lambda row: convert_to_point(row['geometry.type'], row['geometry.coordinates']), axis=1)
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+                return gdf
+
+        def nuts_population(self, year=None):
+
+            ####  maybe have year as an argument?
+
+            total_combined = pd.DataFrame()
+
+            sexd = ['M', 'F', 'TOTAL']
+            aged = ['Y_LT15', 'Y15-29', 'Y30-49', 'Y50-64', 'Y65-84', 'Y_GE85', 'TOTAL']
+
+            for age_loop in aged:
+                for sex_loop in sexd:
+
+                    attributes_dict = {'index': [], 'year': [], 'age': [], 'sex': [], 'name': [], 'nuts3': [],
+                                       'nuts3_2': []}
+                    values_dict = {'index': [], 'values': []}
+
+                    # URL of the Eurostat API
+                    url = f"https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/cens_21agr3?format=JSON&lang=EN&age={age_loop}&sex={sex_loop}"
+                    print(url)
+
+                    # Send a GET request to the API to retrieve the data
+                    response = requests.get(url)
+
+                    # Check if the response is successful
+                    if response.status_code == 200:
+                        data = response.json()
+
+                        #### year published ######
+                        for x in data['dimension']['time']['category']['label']:
+                            year = x
+
+                        #### age
+                        for key, value in data['dimension']['age']['category']['label'].items():
+                            age = key
+
+                        for key, value in data['dimension']['sex']['category']['label'].items():
+                            sex = key
+
+                        ### countrie code and name
+                        for key, value in data['dimension']['geo']['category']['label'].items():
+                            name = value
+                            nuts_code = key
+                            attributes_dict['name'].append(name)
+                            attributes_dict['nuts3'].append(nuts_code)
+
+                        ##### country code and index
+                        for key, value in data['dimension']['geo']['category']['index'].items():
+                            name = key
+                            index = value
+                            attributes_dict['nuts3_2'].append(name)
+                            attributes_dict['index'].append(index)
+
+                        for key, value in data['value'].items():
+                            index = key
+                            values = value
+                            values_dict['index'].append(index)
+                            values_dict['values'].append(values)
+
+                    #### values df
+                    values_df = pd.DataFrame(values_dict)
+                    values_df['index'] = values_df['index'].astype(int)
+                    values_df = values_df.sort_values(by='index')
+
+                    #### attributes_df
+                    attributes_df = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in attributes_dict.items()]))
+                    attributes_df['year'] = year
+                    attributes_df['age'] = age
+                    attributes_df['sex'] = sex
+
+                    total = attributes_df.merge(values_df, on='index')
+                    total_combined = pd.concat([total, total_combined])
+
+            return total_combined
+
+        def nuts_attributes(self):
+
+            #### attributes gathered from esri that might need dc'ed
+
+            import requests
+            import pandas as pd
+
+            # URL for the ArcGIS REST service
+            url = "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/Europe_NUTS_3_Demographics_and_Boundaries/FeatureServer/0/query"
+
+            # Initialize variables for pagination
+            all_data = []
+            result_offset = 0
+            chunksize = 1000
+
+            while True:
+                # Query parameters with pagination
+                params = {
+                    'where': '1=1',
+                    'outFields': '*',
+                    'f': 'json',
+                    'returnGeometry': 'False',
+                    'geometryType': 'esriGeometryPolygon',
+                    'resultRecordCount': chunksize,
+                    'resultOffset': result_offset
+                }
+
+                # Make the GET request
+                response = requests.get(url, params=params)
+
+                if response.status_code == 200:
+                    data = response.json()
+
+                    # Check if features exist in the response
+                    if 'features' in data and data['features']:
+                        all_data.extend(data['features'])
+                        result_offset += chunksize
+                    else:
+                        break
+                else:
+                    print(f"Error: {response.status_code}")
+                    break
+
+            # Normalize the JSON data into a DataFrame
+            if all_data:
+                df = pd.json_normalize(all_data, sep='.')
+            else:
+                print("No data returned.")
+
+            return df
+
+        def communes(self):
+
+            url = 'https://gisco-services.ec.europa.eu/distribution/v2/communes/geojson/COMM_RG_01M_2016_4326.geojson'
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+                def convert_to_geometry(geometry_type, coordinates):
+                    if geometry_type == 'Polygon':
+                        # Convert the coordinates to Polygon
+                        return Polygon(coordinates[0])  # Use the first set of coordinates for a simple Polygon
+                    elif geometry_type == 'MultiPolygon':
+                        # Convert the coordinates to MultiPolygon
+                        return MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+                    else:
+                        return None
+
+                df['geometry'] = df.apply(
+                    lambda row: convert_to_geometry(row['geometry.type'], row['geometry.coordinates']), axis=1)
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+            pass
+
+        def local_admin_units(self):
+
+            url = 'https://gisco-services.ec.europa.eu/distribution/v2/lau/geojson/LAU_RG_01M_2021_4326.geojson'
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+                def convert_to_geometry(geometry_type, coordinates):
+                    if geometry_type == 'Polygon':
+                        # Convert the coordinates to Polygon
+                        return Polygon(coordinates[0])  # Use the first set of coordinates for a simple Polygon
+                    elif geometry_type == 'MultiPolygon':
+                        # Convert the coordinates to MultiPolygon
+                        return MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+                    else:
+                        return None
+
+                df['geometry'] = df.apply(
+                    lambda row: convert_to_geometry(row['geometry.type'], row['geometry.coordinates']), axis=1)
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+                return gdf
+
+        def urban_audit_100k(self):
+
+            url = 'https://gisco-services.ec.europa.eu/distribution/v2/urau/geojson/URAU_RG_100K_2021_4326.geojson'
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+                def convert_to_geometry(geometry_type, coordinates):
+                    if geometry_type == 'Polygon':
+                        # Convert the coordinates to Polygon
+                        return Polygon(coordinates[0])  # Use the first set of coordinates for a simple Polygon
+                    elif geometry_type == 'MultiPolygon':
+                        # Convert the coordinates to MultiPolygon
+                        return MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+                    else:
+                        return None
+
+                df['geometry'] = df.apply(
+                    lambda row: convert_to_geometry(row['geometry.type'], row['geometry.coordinates']), axis=1)
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+                return gdf
+
+        def urban_audit_100k_cities(self):
+
+            url = 'https://gisco-services.ec.europa.eu/distribution/v2/urau/geojson/URAU_RG_100K_2021_4326_CITIES.geojson'
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+                def convert_to_geometry(geometry_type, coordinates):
+                    if geometry_type == 'Polygon':
+                        # Convert the coordinates to Polygon
+                        return Polygon(coordinates[0])  # Use the first set of coordinates for a simple Polygon
+                    elif geometry_type == 'MultiPolygon':
+                        # Convert the coordinates to MultiPolygon
+                        return MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+                    else:
+                        return None
+
+                df['geometry'] = df.apply(
+                    lambda row: convert_to_geometry(row['geometry.type'], row['geometry.coordinates']), axis=1)
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+                return gdf
+
+        def urban_audit_100k_FAU(self):
+
+            url = 'https://gisco-services.ec.europa.eu/distribution/v2/urau/geojson/URAU_RG_100K_2021_4326_FUA.geojson'
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+                def convert_to_geometry(geometry_type, coordinates):
+                    if geometry_type == 'Polygon':
+                        # Convert the coordinates to Polygon
+                        return Polygon(coordinates[0])  # Use the first set of coordinates for a simple Polygon
+                    elif geometry_type == 'MultiPolygon':
+                        # Convert the coordinates to MultiPolygon
+                        return MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+                    else:
+                        return None
+
+                df['geometry'] = df.apply(
+                    lambda row: convert_to_geometry(row['geometry.type'], row['geometry.coordinates']), axis=1)
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+                return gdf
+
+        def global_countries(self):
+
+            url = 'https://gisco-services.ec.europa.eu/distribution/v2/countries/geojson/CNTR_RG_01M_2024_4326.geojson'
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+                def convert_to_geometry(geometry_type, coordinates):
+                    if geometry_type == 'Polygon':
+                        # Convert the coordinates to Polygon
+                        return Polygon(coordinates[0])  # Use the first set of coordinates for a simple Polygon
+                    elif geometry_type == 'MultiPolygon':
+                        # Convert the coordinates to MultiPolygon
+                        return MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+                    else:
+                        return None
+
+                df['geometry'] = df.apply(
+                    lambda row: convert_to_geometry(row['geometry.type'], row['geometry.coordinates']), axis=1)
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+                return gdf
+
+        def global_coastlines(self, year=None):
+
+            url = 'https://gisco-services.ec.europa.eu/distribution/v2/coas/geojson/COAS_RG_01M_2016_4326.geojson'
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['features'])
+
+                def convert_to_geometry(geometry_type, coordinates):
+                    if geometry_type == 'Polygon':
+                        # Convert the coordinates to Polygon
+                        return Polygon(coordinates[0])  # Use the first set of coordinates for a simple Polygon
+                    elif geometry_type == 'MultiPolygon':
+                        # Convert the coordinates to MultiPolygon
+                        return MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+                    else:
+                        return None
+
+                df['geometry'] = df.apply(
+                    lambda row: convert_to_geometry(row['geometry.type'], row['geometry.coordinates']), axis=1)
+                # Convert the DataFrame to a GeoDataFrame
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+                return gdf
+
+        def mb_query(self):
+
+            ###### this is the mb query #### from esri
+            ### I GOT THIS WORKING #####
+
+            url = 'https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/Europe_NUTS_3_Demographics_and_Boundaries/FeatureServer/0/query'
+
+            all_features = []
+            chunk_size = 500  # Try reducing chunk size
+            offset = 0
+
+            # Fetch data in chunks
+            while True:
+                params = {
+                    'where': "1=1",
+                    'outFields': '*',  # Minimal fields
+                    'f': 'json',
+                    'returnGeometry': 'true',
+                    'resultRecordCount': chunk_size,
+                    'resultOffset': offset
+                }
+
+                response = requests.get(url, params=params, verify=False)
+
+                if response.status_code == 200:
+                    features = response.json().get('features', [])
+                    if not features:
+                        break
+                    all_features.extend(features)
+                    offset += chunk_size
+                    print(f"Fetched {len(features)} features. Total so far: {len(all_features)}")
+                else:
+                    print(f"Failed to retrieve data. Status code: {response.status_code}")
+                    break
+
+            if all_features:
+                df = pd.json_normalize(all_features)
+
+                # Process the geometry.rings to convert them into Polygon or MultiPolygon
+                def convert_to_geometry(rings):
+                    if len(rings) == 1:
+                        return Polygon(rings[0])
+                    else:
+                        return MultiPolygon([Polygon(ring) for ring in rings])
+
+                df['geometry'] = df['geometry.rings'].apply(convert_to_geometry)
+                gdf = geo.GeoDataFrame(df, geometry='geometry', crs=4326)
+                gdf = gdf.drop(columns='geometry.rings')
+                gdf.to_file('eu_demo.geojson', driver='GeoJSON')
+
+                print('Geometries saved as geojson object to current directory')
+
+                return gdf
+
     class WikiGeo():
         pass
 
@@ -2848,6 +3270,12 @@ class Fetch(Base):
 
             df = pd.json_normalize(all_data)
             return df
+
+    class ESRI():
+
+        # placeholder for esri data and maps --- same stuff that provided nuts
+
+        pass
 
 class Stage(Base):
     pass
