@@ -2931,7 +2931,6 @@ class Fetch(Base):
 
                 return gdf
 
-        pass
 
     class WikiGeo():
         pass
