@@ -315,53 +315,55 @@ class MapZeus(Base):
 
     def datashader(self):
 
+        pass
+
         #### this is not complete
-
-        # Read your dataset
-        bd = geo.read_file('path_to_your_building_footprints.geojson')
-
-        # Calculate centroids of the building polygons
-        bd['centroid'] = bd.geometry.centroid
-
-        # Create a new DataFrame with longitude and latitude of centroids
-        centroids = bd['centroid'].apply(lambda geom: pd.Series({'longitude': geom.x, 'latitude': geom.y}))
-
-        # Define the canvas
-        cvs = ds.Canvas(plot_width=2000, plot_height=1000)
-
-        # Aggregate the points
-        agg = cvs.points(centroids, 'longitude', 'latitude')
-
-        # Shade the aggregation
-        img = tf.shade(agg, cmap=colorcet.fire, how='log')[::-1].to_pil()
-
-        # Get the coordinates for the corners of the image
-        coords_lat, coords_lon = agg.coords['latitude'].values, agg.coords['longitude'].values
-        coordinates = [
-            [coords_lon[0], coords_lat[0]],
-            [coords_lon[-1], coords_lat[0]],
-            [coords_lon[-1], coords_lat[-1]],
-            [coords_lon[0], coords_lat[-1]]
-        ]
-
-        # Create a Plotly figure with Mapbox
-        fig = px.scatter_mapbox(lat=[coords_lat[0]], lon=[coords_lon[0]], zoom=12, height=1000)
-
-        # Add the Datashader image as a Mapbox layer image
-        fig.update_layout(
-            mapbox_style="carto-positron",
-            mapbox_layers=[
-                {
-                    "sourcetype": "image",
-                    "source": img,
-                    "coordinates": coordinates
-                }
-            ]
-        )
-
-        fig.show()
-
-        return fig
+        #
+        # # Read your dataset
+        # bd = geo.read_file('path_to_your_building_footprints.geojson')
+        #
+        # # Calculate centroids of the building polygons
+        # bd['centroid'] = bd.geometry.centroid
+        #
+        # # Create a new DataFrame with longitude and latitude of centroids
+        # centroids = bd['centroid'].apply(lambda geom: pd.Series({'longitude': geom.x, 'latitude': geom.y}))
+        #
+        # # Define the canvas
+        # cvs = ds.Canvas(plot_width=2000, plot_height=1000)
+        #
+        # # Aggregate the points
+        # agg = cvs.points(centroids, 'longitude', 'latitude')
+        #
+        # # Shade the aggregation
+        # img = tf.shade(agg, cmap=colorcet.fire, how='log')[::-1].to_pil()
+        #
+        # # Get the coordinates for the corners of the image
+        # coords_lat, coords_lon = agg.coords['latitude'].values, agg.coords['longitude'].values
+        # coordinates = [
+        #     [coords_lon[0], coords_lat[0]],
+        #     [coords_lon[-1], coords_lat[0]],
+        #     [coords_lon[-1], coords_lat[-1]],
+        #     [coords_lon[0], coords_lat[-1]]
+        # ]
+        #
+        # # Create a Plotly figure with Mapbox
+        # fig = px.scatter_mapbox(lat=[coords_lat[0]], lon=[coords_lon[0]], zoom=12, height=1000)
+        #
+        # # Add the Datashader image as a Mapbox layer image
+        # fig.update_layout(
+        #     mapbox_style="carto-positron",
+        #     mapbox_layers=[
+        #         {
+        #             "sourcetype": "image",
+        #             "source": img,
+        #             "coordinates": coordinates
+        #         }
+        #     ]
+        # )
+        #
+        # fig.show()
+        #
+        # return fig
 
     def choropleth(self):
         pass
@@ -2928,6 +2930,8 @@ class Fetch(Base):
                 print('Geometries saved as geojson object to current directory')
 
                 return gdf
+
+        pass
 
     class WikiGeo():
         pass
