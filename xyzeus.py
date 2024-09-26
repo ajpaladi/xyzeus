@@ -2931,7 +2931,6 @@ class Fetch(Base):
 
                 return gdf
 
-
     class WikiGeo():
         pass
 
@@ -3276,7 +3275,17 @@ class Fetch(Base):
 
     class ESRI():
 
+        def esri_dict(self):
+            pass
+
+        def fetch(self):
+            pass
+
         # placeholder for esri data and maps --- same stuff that provided nuts
+
+    class SocialGeo():
+
+        #### this is a placeholder for geospatial social media scraping
 
         pass
 
