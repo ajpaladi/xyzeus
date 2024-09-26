@@ -2,15 +2,20 @@ import os
 import subprocess
 from shapely.geometry import box, LineString, Polygon, Point, MultiPolygon
 from shapely.wkt import loads
+from shapely import wkt
 import geopandas as geo
 import pandas as pd
 import requests
 from io import StringIO
 import datetime
 import plotly_express as px
+import tempfile
+import json
+import numpy as np
 import colorcet
 from pprint import pprint
 import matplotlib.pyplot as plt
+import overturemaps
 
 class Base():
     pass
@@ -443,9 +448,8 @@ class Fetch(Base):
 
     class NWS():
 
-        ### national weather service ###
+        def daily_forecast(self, wkt_point=None, latlng=None):
 
-        def latlng_to_forecast(self, wkt_point=None, latlng=None):
             if wkt_point:
                 point = loads(wkt_point)
                 lat, lng = point.y, point.x
@@ -462,6 +466,38 @@ class Fetch(Base):
                 data = response.json()
                 df = pd.json_normalize(data['properties'])
                 forecast_url = df['forecast'].iloc[0]
+
+                response = requests.get(forecast_url)
+                if response.status_code == 200:
+                    forecast_data = response.json()
+                    forecast_df = pd.json_normalize(forecast_data['properties']['periods'])
+                    return forecast_df
+                else:
+                    print(f"Failed to fetch forecast data: {response.status_code}")
+                    return None
+            else:
+                print(f"Failed to fetch point data: {response.status_code}")
+                return None
+
+        def hourly_forecast(self, wkt_point=None, latlng=None):
+
+            if wkt_point:
+                point = loads(wkt_point)
+                lat, lng = point.y, point.x
+                url = f'https://api.weather.gov/points/{lat},{lng}'
+            elif latlng:
+                lat, lng = latlng[1], latlng[0]
+                url = f'https://api.weather.gov/points/{lat},{lng}'
+            else:
+                print('Must provide wkt_point or latlng')
+                return None
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['properties'])
+                forecast_url = df['forecastHourly'].iloc[0]
+                print(forecast_url)
 
                 response = requests.get(forecast_url)
                 if response.status_code == 200:
@@ -511,8 +547,66 @@ class Fetch(Base):
 
             return df
 
-        def alerts(self):
-            pass
+        def alerts(self, wkt_point=None, latlng=None, severity=None):
+
+            if wkt_point or latlng:
+
+                if wkt_point:
+                    point = loads(wkt_point)
+                    lat, lng = point.y, point.x
+                    url = f'https://api.weather.gov/alerts?point={lat},{lng}'
+                elif latlng:
+                    lat, lng = latlng[1], latlng[0]
+                    url = f'https://api.weather.gov/alerts?point={lat},{lng}'
+                else:
+                    print('Must provide wkt_point or latlng')
+                    return None
+
+                url = f'https://api.weather.gov/alerts?point={lat},{lng}&limit=500'
+
+
+            else:
+
+                url = f'https://api.weather.gov/alerts?&limit=500'
+
+            if severity:
+                url = url + f'&severity={severity}'
+
+            print(url)
+            alerts_data = []
+            while url:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    data = response.json()
+                    alerts_data.extend(data['features'])  # Add the new alerts to the total
+
+                    # Check if there is a 'pagination' key and if the 'next' URL is present
+                    if 'pagination' in data and 'next' in data['pagination']:
+                        url = data['pagination']['next']
+                    else:
+                        url = None  # No more pages, exit the loop
+                else:
+                    print(f"Error: Unable to retrieve data. Status code {response.status_code}")
+                    return None
+
+                # Now you have all the alerts collected in alerts_data
+            df = pd.json_normalize(alerts_data)
+
+            def convert_to_geometry(geometry_type, coordinates):
+                if geometry_type == 'Polygon':
+                    return Polygon(coordinates[0])  # Use the first set of coordinates for a simple Polygon
+                elif geometry_type == 'MultiPolygon':
+                    return MultiPolygon([Polygon(polygon[0]) for polygon in coordinates])
+                else:
+                    return None
+
+            df['geometry'] = df.apply(
+                lambda row: convert_to_geometry(row['geometry.type'], row['geometry.coordinates']), axis=1)
+
+            # Convert the DataFrame to a GeoDataFrame
+            gdf = geo.GeoDataFrame(df, geometry='geometry', crs="EPSG:4326")
+
+            return gdf
 
     class Census():
 
@@ -2322,7 +2416,93 @@ class Fetch(Base):
         pass
 
     class Overture():
-        pass
+
+        def fix_ovm_columns(self, gdf, category):
+
+            # Check if 'sources' column exists and normalize it
+
+            if 'sources' in gdf.columns:
+                gdf['sources'] = gdf['sources'].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+                gdf['sources'] = gdf['sources'].apply(json.dumps)
+                normalized_sources = pd.json_normalize(gdf['sources'].apply(json.loads).explode())
+                normalized_sources.rename(columns={
+                    'property': 'source_property',
+                    'dataset': 'source_dataset',
+                    'record_id': 'source_record_id',
+                    'confidence': 'source_confidence'
+                }, inplace=True)
+                for col in normalized_sources.columns:
+                    gdf[col] = normalized_sources[col]
+
+            if 'names' in gdf.columns:
+
+                def extract_common_name(names):
+                    if not names:
+                        return 'Unknown'
+                    for name in names:
+                        if name[0] == 'en':
+                            return name[1]
+                    return 'Unknown'
+                gdf['name'] = gdf['names'].apply(
+                    lambda x: extract_common_name(x['common']) if isinstance(x, dict) and 'common' in x else None)
+
+                gdf['name'] = gdf['name'].apply(json.dumps)
+                gdf = gdf.drop(columns=['names'])
+
+            if category == 'place':
+                if 'categories' in gdf.columns:
+                    gdf['categories'] = gdf['categories'].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
+
+            elif category == 'segment':
+
+                if 'connector_ids' in gdf.columns:
+                    gdf['connector_ids'] = gdf['connector_ids'].apply(
+                        lambda x: json.loads(x) if isinstance(x, str) else x)
+
+            return gdf
+
+        def overture(self, area, category=None, direct_download=None, download_format=None, download_path=None, download_name=None):
+
+            if category is None:
+                category = 'building'
+
+            area_geom = wkt.loads(area)
+            minx, miny, maxx, maxy = area_geom.bounds
+            bbox_str = f"{minx},{miny},{maxx},{maxy}"
+            print(bbox_str)
+
+            if direct_download:
+
+                if download_name is None:
+                    download_name = 'overture'
+
+                download_path = download_path + '/' + download_name + '.' + download_format
+                command = [
+                    "overturemaps", "download",
+                    f"--bbox={bbox_str}",
+                    "-f", download_format,
+                    f"--type={category}",
+                    "-o", download_path
+                ]
+                subprocess.run(command)
+                print(f'Downloading {download_format} to {download_path}')
+
+            else:
+                temp_dir = tempfile.mkdtemp()
+                output_file = os.path.join(temp_dir, f"{bbox_str}.geoparquet")
+                command = [
+                    "overturemaps", "download",
+                    f"--bbox={bbox_str}",
+                    "-f", "geoparquet",
+                    f"--type={category}",
+                    "-o", output_file
+                ]
+
+                subprocess.run(command)
+                gdf = geo.read_parquet(output_file)
+                gdf = self.fix_ovm_columns(gdf, category)
+
+                return gdf
 
     class OSM():
         pass
