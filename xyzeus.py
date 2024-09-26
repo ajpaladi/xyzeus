@@ -3468,6 +3468,8 @@ class Fetch(Base):
         #### this is a placeholder for geospatial social media scraping
 
         pass
+    class SentinelHub():
+        pass
 
 class Stage(Base):
     pass
