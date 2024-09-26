@@ -2413,7 +2413,20 @@ class Fetch(Base):
             pass
 
     class OpenTopo():
-        pass
+
+        def catalog(self, area=None):
+
+            wkt_polygon = area
+            polygon = wkt.loads(wkt_polygon)
+            minx, miny, maxx, maxy = polygon.bounds
+            api_url = f"https://portal.opentopography.org/API/otCatalog?productFormat=Raster&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}&detail=true&outputFormat=json&include_federated=true"
+            print(api_url)
+
+        def datasets(self):
+            pass
+
+        def fetch(self):
+            pass
 
     class Overture():
 
@@ -2567,7 +2580,39 @@ class Fetch(Base):
         pass
 
     class FWS():
-        pass
+
+        def fetch(self, area=None):
+
+
+            url = "https://ipac.ecosphere.fws.gov/location/api/resources"
+
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+
+            params = {
+                "projectLocationWKT": "POLYGON((-95.1306152 30.4486737, -93.6584473 29.4061051, -94.6691895 28.5314486, -96.5368652 29.9834867, -95.1306152 30.4486737))",
+                "timeout": 2,
+                "apiVersion": "1.0.0",
+                "locationFormat": "WKT",
+                "includeOtherFwsResources": True,
+                "includeCrithabGeometry": False,
+                "saveLocationForProjectCreation": False
+            }
+
+            response = requests.post(url, headers=headers, json=params)
+
+            if response.status_code == 200:
+                data = response.json()
+                for key, value in data['resources']['allReferencedPopulationsBySid'].items():
+                    print(f"Key: {key}")
+                    print("Value:")
+                    for item in value:
+                        print(item)
+                    print("\n---\n")
+            else:
+                print(f"Error: {response.status_code}")
 
     class HistoricalTopo():
 
