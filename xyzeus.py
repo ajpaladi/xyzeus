@@ -12,6 +12,11 @@ import plotly_express as px
 import tempfile
 import json
 import numpy as np
+from io import BytesIO
+import rasterio
+from rasterio.plot import show
+import matplotlib.pyplot as plt
+import snscrape
 import colorcet
 from pprint import pprint
 import matplotlib.pyplot as plt
@@ -443,6 +448,9 @@ class AnalyzeLAS(Base):
 
     def potree(self, las_path=None):
         pass
+
+class Geocode(Base):
+    pass
 
 class Fetch(Base):
 
@@ -2414,19 +2422,74 @@ class Fetch(Base):
 
     class OpenTopo():
 
-        def catalog(self, area=None):
+        def catalog(self, area=None, type=None):
+
+            # type options include point cloud and raster
+
+            if not type:
+                type = 'Raster'
 
             wkt_polygon = area
             polygon = wkt.loads(wkt_polygon)
             minx, miny, maxx, maxy = polygon.bounds
-            api_url = f"https://portal.opentopography.org/API/otCatalog?productFormat=Raster&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}&detail=true&outputFormat=json&include_federated=true"
-            print(api_url)
+            url = f"https://portal.opentopography.org/API/otCatalog?productFormat={type}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}&detail=true&outputFormat=json&include_federated=true&&API_Key=0bc7a612b9b08c9b1d77d2c5b5a3f733"
+
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                df = pd.json_normalize(data['Datasets'])
+                return df
 
         def datasets(self):
-            pass
 
-        def fetch(self):
-            pass
+            dataset_dict = {'global_dem':
+                                ['SRTMGL3 (SRTM GL3 90m)',
+                                'SRTMGL1 (SRTM GL1 30m)',
+                                'SRTMGL1_E (SRTM GL1 Ellipsoidal 30m)',
+                                'AW3D30 (ALOS World 3D 30m)',
+                                'AW3D30_E (ALOS World 3D Ellipsoidal, 30m)',
+                                'SRTM15Plus (Global Bathymetry SRTM15+ V2.1 500m)',
+                                'NASADEM (NASADEM Global DEM)',
+                                'COP30 (Copernicus Global DSM 30m)',
+                                'COP90 (Copernicus Global DSM 90m)',
+                                'EU_DTM (DTM 30m)',
+                                'GEDI_L3 (DTM 1000m)',
+                                'GEBCOIceTopo (Global Bathymetry 500m)',
+                                'GEBCOSubIceTopo (Global Bathymetry 500m)'],
+                            'usgs_dem' :
+                                ['USGS1m',
+                                 'USGS10m',
+                                 'USGS30m']}
+
+            return dataset_dict
+
+        def fetch(self, dem_type=None, area=None, cmap=None):
+
+            if not cmap:
+                cmap = 'YlGnBu_r'
+
+            wkt_polygon = area
+            polygon = wkt.loads(wkt_polygon)
+            minx, miny, maxx, maxy = polygon.bounds
+
+            usgs_dems = ['USGS1m','USGS10m','USGS30m']
+
+            if dem_type in usgs_dems:
+                url = f'https://portal.opentopography.org/API/usgsdem?datasetName={dem_type}&south={miny}&north={maxy}&west={minx}&east={maxx}&outputFormat=GTiff&API_Key=0ec7b46ee35b3c02cca645ae397a3809'
+            else:
+                url = f'https://portal.opentopography.org/API/globaldem?demtype={dem_type}&south={miny}&north={maxy}&west={minx}&east={maxx}&outputFormat=GTiff&API_Key=0ec7b46ee35b3c02cca645ae397a3809'
+
+            from IPython.display import display, HTML
+            display(HTML(f'<a href="{url}" target="_blank">Click to Download</a>'))
+
+            response = requests.get(url)
+            raster_data = BytesIO(response.content)
+
+            # Use rasterio to open the fetched data
+            with rasterio.open(raster_data) as src:
+                fig, ax = plt.subplots(figsize=(20, 20))
+                show(src, ax=ax, title=f'{dem_type} DEM', cmap=cmap)
+                plt.show()
 
     class Overture():
 
@@ -3506,13 +3569,120 @@ class Fetch(Base):
         def fetch(self):
             pass
 
-        # placeholder for esri data and maps --- same stuff that provided nuts
+        def cell_towers(self):
+            pass
+
+        def cattle(self):
+            pass
+
+        def corn(self):
+            pass
+
+        def cotton(self):
+            pass
+
+        def bathy_topo(self):
+            pass
+
+        def climate_resilliance_planning(self):
+            ass
+
+        def dairy(self):
+            pass
+
+        def global_disputed_boundaries(self):
+            pass
+
+        def eez(self):
+            pass
+
+        def global_weather_stations(self):
+            pass
+
+        def hay(self):
+            pass
+
+        def hogs(self):
+            pass
+
+        def home_value_income(self):
+            pass
+
+        def inat_species(self):
+            pass
+
+        def nhd(self):
+            pass
+
+        def nhd_plus(self):
+            pass
+
+        def oceanic_vents(self):
+            pass
+
+        def shipping_choke_points(self):
+            pass
+
+        def traffic_cams(self):
+            pass
+
+        def campgroud_reservations(self):
+            pass
+
+        def federal_lands(self):
+            pass
+
+        def drilling_platforms(self):
+            pass
+
+        def detailed_streams(self):
+            pass
+
+        def detailed_water_bodies(self):
+            pass
+
+        def usa_freeway_system(self):
+            pass
+
+        def defense_lands(self):
+            pass
+
+        def us_historical_sites(self):
+            pass
+
+        def us_november_22(self):
+            pass
+
+        def usda(self):
+            pass
+
+        def watershed_boundaries(self):
+            pass
+
+        def zip_codes(self):
+            pass
+
+        def world_boundaries(self):
+            pass
+
+        def world_cities(self):
+            pass
+
+        def global_ports(self):
+            pass
+
+        def economic_damage_climate_change(self):
+            pass
+
+        def us_fire_burned_areas(self):
+            pass
 
     class SocialGeo():
 
         #### this is a placeholder for geospatial social media scraping
 
         pass
+
     class SentinelHub():
         pass
 
