@@ -3693,7 +3693,10 @@ class CV(Base):
 
     def segment(self):
         pass
-    pass
+    def change_detect(self):
+        pass
+    def lc_change_detect(self):
+        pass
 
 class WhatsHere(Base):
     pass
